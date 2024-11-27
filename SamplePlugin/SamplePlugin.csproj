@@ -20,4 +20,8 @@
   <ItemGroup>
     <PackageReference Include="Dalamud.DrunkenToad" Version="1.9.1" />
   </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ECommons\ECommons\ECommons.csproj" />
+    </ItemGroup>
 </Project>

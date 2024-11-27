@@ -47,17 +47,20 @@ namespace PeepingTim.Windows
             {
                 foreach (var viewer in pastViewers)
                 {
-                    bool isActive = currentViewers.Exists(v => v.GameObjectId == viewer.GameObjectId);
-                    var name = $"{viewer.Name}";
-                    var timestamp = viewerTimestamps.ContainsKey(viewer.GameObjectId) ? viewerTimestamps[viewer.GameObjectId].ToString("HH:mm") : "";
+                    bool isActive = currentViewers.Exists(v => v.GameObjectId == viewer.Key.GameObjectId);
+                    bool isTargetable = viewer.Value;
+                    var name = $"{viewer.Key.Name}";
+                    var timestamp = viewerTimestamps.ContainsKey(viewer.Key.Name) ? viewerTimestamps[viewer.Key.Name].ToString("HH:mm") : "";
 
                     if (isActive)
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1f, 1f, 1f, 1f)); // Weiß für aktive Betrachter
-                    }
-                    else
+                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.0431f, 0.9569f, 0.1804f, 1.0000f)); // Weiß für aktive Betrachter
+                    } else if (isTargetable)
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.5f, 0.5f, 0.5f, 1f)); // Grau für frühere Betrachter
+                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1f, 1f, 1f, 1f)); // Weiß für frühere Betrachter
+                    } else
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.5f, 0.5f, 0.5f, 1f)); // Grau für frühere nicht anvisierbare Betrachter
                     }
 
                     // Starten einer neuen Gruppe
@@ -86,42 +89,34 @@ namespace PeepingTim.Windows
                     // Erstellen eines unsichtbaren Buttons über die gesamte Zeile für Hover- und Klick-Ereignisse
                     Vector2 itemSize = new Vector2(windowWidth - cursorPos.X, ImGui.GetTextLineHeightWithSpacing());
                     ImGui.SetCursorScreenPos(cursorPos);
-                    ImGui.InvisibleButton($"##viewer_{viewer.GameObjectId}", itemSize);
+                    ImGui.InvisibleButton($"##viewer_{viewer.Key.GameObjectId}", itemSize);
 
                     // Interaktionen behandeln
                     if (ImGui.IsItemHovered())
                     {
-                        Plugin.HighlightCharacter(viewer);
+                        Plugin.HighlightCharacter(viewer.Key);
                     }
 
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
                     {
-                        Plugin.TargetCharacter(viewer);
+                        Plugin.TargetCharacter(viewer.Key);
                     }
 
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     {
-                        ImGui.OpenPopup($"ContextMenu_{viewer.GameObjectId}");
+                        ImGui.OpenPopup($"ContextMenu_{viewer.Key.GameObjectId}");
                     }
 
                     // Begin the context menu popup
-                    if (ImGui.BeginPopup($"ContextMenu_{viewer.GameObjectId}"))
+                    if (ImGui.BeginPopup($"ContextMenu_{viewer.Key.GameObjectId}"))
                     {
-                        if (ImGui.MenuItem("Invite to Party"))
-                        {
-                            Plugin.SendChatCommand("invite", viewer);
-                        }
                         if (ImGui.MenuItem("Send Tell"))
                         {
-                            Plugin.SendChatCommand("tell", viewer);
-                        }
-                        if (ImGui.MenuItem("Add to Friends"))
-                        {
-                            Plugin.SendChatCommand("friend", viewer);
+                            Plugin.SendChatCommand("tell", viewer.Key);
                         }
                         if (ImGui.MenuItem("View Adventurer Plate"))
                         {
-                            Plugin.OpenAdventurerPlate(viewer);
+                            Plugin.OpenAdventurerPlate(viewer.Key);
                         }
                         ImGui.EndPopup();
                     }

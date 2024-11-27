@@ -1,6 +1,4 @@
 using Dalamud.Game.ClientState.Objects.Types;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Objects;
@@ -15,7 +13,7 @@ using System;
 using PeepingTim.Windows;
 using ImGuiNET;
 using System.Linq;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using Dalamud.Game.Text.SeStringHandling;
 
 namespace PeepingTim;
 
@@ -35,21 +33,16 @@ public sealed class Plugin : IDalamudPlugin
     private const string CommandName1 = "/ptim";
     private const string CommandName2 = "/peepingtim";
 
+    ECommonsMain.Init(pluginInterface, this);
     public Configuration Configuration { get; init; }
 
     public readonly WindowSystem WindowSystem = new("PeepingTim");
     private MainWindow MainWindow { get; init; }
 
-    // Lists for current and past viewers
-    private List<ulong> currentViewers = new();
-    private List<ulong> pastViewers = new();
+    // Dictionary to store viewer information
+    private Dictionary<string, ViewerInfo> viewers = new();
 
     public bool SoundEnabled = false;
-
-    // Dictionary to store timestamps of when a viewer started watching
-    private Dictionary<ulong, DateTime> viewerTimestamps = new();
-
-    private bool test = true;
 
     public Plugin()
     {
@@ -62,12 +55,12 @@ public sealed class Plugin : IDalamudPlugin
         // Add commands
         CommandManager.AddHandler(CommandName1, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Opens the PeepingTim window."
+            HelpMessage = "Öffnet das PeepingTim-Fenster."
         });
 
         CommandManager.AddHandler(CommandName2, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Opens the PeepingTim window."
+            HelpMessage = "Öffnet das PeepingTim-Fenster."
         });
 
         PluginInterface.UiBuilder.Draw += DrawUI;
@@ -86,6 +79,7 @@ public sealed class Plugin : IDalamudPlugin
         CommandManager.RemoveHandler(CommandName2);
 
         Framework.Update -= OnUpdate;
+        ECommonsMain.Dispose();
     }
 
     private void OnCommand(string command, string args)
@@ -101,198 +95,157 @@ public sealed class Plugin : IDalamudPlugin
             return;
 
         ulong localPlayerId = ClientState.LocalPlayer.GameObjectId;
-        var newCurrentViewers = new List<ulong>();
+
+        // Temporäre Liste der aktuellen Betrachter
+        var currentlyLookingAtMe = new HashSet<string>();
 
         foreach (var obj in ObjectTable)
         {
-            if (obj is IGameObject gameObject)
+            if (obj is IPlayerCharacter character && character.GameObjectId != localPlayerId)
             {
-                if (gameObject is ICharacter character && character.GameObjectId != localPlayerId)
+                if (character.TargetObjectId == localPlayerId)
                 {
-                    if (character.TargetObjectId == localPlayerId)
-                    {
-                        ulong charId = character.GameObjectId;
-                        newCurrentViewers.Add(charId);
+                    string key = GetPlayerKey(character);
 
-                        if (!pastViewers.Contains(charId))
+                    currentlyLookingAtMe.Add(key);
+
+                    if (!viewers.ContainsKey(key))
+                    {
+                        // Neuer Betrachter
+                        viewers[key] = new ViewerInfo
                         {
-                            pastViewers.Add(charId);
+                            Name = character.Name.TextValue,
+                            World = character.HomeWorld.GameData?.Name ?? "Unknown",
+                            IsActive = true,
+                            FirstSeen = DateTime.Now,
+                            LastSeen = DateTime.Now
+                        };
+
+                        // Optionally play a sound when a new viewer starts watching
+                        if (SoundEnabled)
+                        {
+                            // Play sound notification here if desired
                         }
+                    }
+                    else
+                    {
+                        // Bereits bekannter Betrachter, Status aktualisieren
+                        viewers[key].IsActive = true;
+                        viewers[key].LastSeen = DateTime.Now;
                     }
                 }
             }
         }
 
-        // Update viewer timestamps
-        foreach (var viewerId in newCurrentViewers)
+        // Betrachter, die nicht mehr schauen, als inaktiv markieren
+        foreach (var key in viewers.Keys.ToList())
         {
-            viewerTimestamps[viewerId] = DateTime.Now;
-            if (test)
+            if (!currentlyLookingAtMe.Contains(key))
             {
-                viewerTimestamps[localPlayerId] = DateTime.Now;
-                test = false;
-            }
-
-            // Optionally play a sound when a new viewer starts watching
-            if (SoundEnabled)
-            {
-                // Implement sound notification here if desired
+                viewers[key].IsActive = false;
             }
         }
 
-        // Remove timestamps for viewers who are no longer watching
-        var allKnownViewers = newCurrentViewers.Concat(pastViewers).Distinct().ToList();
-        var keysToRemove = viewerTimestamps.Keys.Except(allKnownViewers).ToList();
-        foreach (var key in keysToRemove)
-        {
-            viewerTimestamps.Remove(key);
-        }
-
-        currentViewers = newCurrentViewers;
+        // Entfernen von Betrachtern, die länger als eine bestimmte Zeit nicht mehr aktiv sind (optional)
+        // Beispiel: Betrachter entfernen, die seit mehr als 10 Minuten nicht mehr gesehen wurden
+        // viewers = viewers.Where(v => (DateTime.Now - v.Value.LastSeen).TotalMinutes <= 10).ToDictionary(v => v.Key, v => v.Value);
     }
 
-    // Methods to retrieve viewers
-    public List<ICharacter> GetCurrentViewers()
+    // Methoden zum Abrufen der Betrachter
+    public List<ViewerInfo> GetViewers()
     {
-        var viewers = new List<ICharacter>();
-        foreach (var objId in currentViewers)
+        // Sortieren der Betrachter: Zuerst aktive, dann nach Zeitpunkt
+        return viewers.Values
+            .OrderByDescending(v => v.IsActive)
+            .ThenByDescending(v => v.FirstSeen)
+            .Take(15) // Begrenzen auf die Top 15
+            .ToList();
+    }
+
+    private string GetPlayerKey(IPlayerCharacter character)
+    {
+        // Eindeutiger Schlüssel aus Name und Welt
+        string worldName = character.HomeWorld.GameData?.Name ?? "Unknown";
+        return $"{character.Name.TextValue}@{worldName}";
+    }
+
+    // Methode zum Auswählen eines Ziels
+    public void TargetCharacter(ViewerInfo viewer)
+    {
+        if (viewer != null)
         {
-            var gameObject = ObjectTable.SearchById(objId);
-            if (gameObject is ICharacter character)
+            var character = FindCharacterInObjectTable(viewer);
+            if (character != null)
             {
-                viewers.Add(character);
+                TargetManager.Target = character;
+            }
+            else
+            {
+                ChatGui.PrintError($"Charakter {viewer.Name} nicht gefunden.");
             }
         }
-        return viewers;
     }
 
-    public List<ICharacter> GetPastViewers()
+    // Methode zum Hervorheben eines Charakters
+    public void HighlightCharacter(ViewerInfo viewer)
     {
-        var viewers = new List<ICharacter>();
-        foreach (var objId in pastViewers)
+        if (viewer != null)
         {
-            var gameObject = ObjectTable.SearchById(objId);
-            if (gameObject is ICharacter character)
+            var character = FindCharacterInObjectTable(viewer);
+            if (character != null)
             {
-                viewers.Add(character);
+                TargetManager.MouseOverTarget = character;
             }
         }
-        viewers.Add(ClientState.LocalPlayer);
-        return viewers;
     }
 
-    // Method to target a character
-    public void TargetCharacter(ICharacter character)
+    // Hilfsmethode zum Finden eines Charakters in der ObjectTable
+    private IPlayerCharacter? FindCharacterInObjectTable(ViewerInfo viewer)
     {
-        if (character != null)
+        return ObjectTable.FirstOrDefault(obj =>
+            obj is IPlayerCharacter pc &&
+            pc.Name.TextValue == viewer.Name &&
+            pc.HomeWorld.GameData?.Name == viewer.World) as IPlayerCharacter;
+    }
+
+    // Methode zum Senden von Chat-Befehlen
+    public void SendChatCommand(string command, ViewerInfo viewer)
+    {
+        if (viewer != null)
         {
-            TargetManager.Target = character;
+            string name = $"{viewer.Name}@{viewer.World}";
+            string fullCommand = $"/{command} {name}";
+            CommandManager.ProcessCommand(fullCommand);
         }
     }
 
-    // Method to highlight a character
-    public void HighlightCharacter(ICharacter character)
+    public void OpenChatWith(ViewerInfo viewer)
     {
-        if (character is IPlayerCharacter charX && charX != null)
+        if (viewer != null)
         {
-            TargetManager.MouseOverTarget = charX;
-        }
-    }
-
-    // Method to send chat commands
-    public void SendChatCommand(string command, ICharacter character)
-    {
-        if (character is IPlayerCharacter charX && charX != null)
-        {
-            string name = $"{charX.Name}@{charX.HomeWorld.RowId}";
-            command = $"/{command} {name}";    
-            ChatGui.Print(command);
-        }
-    }
-
-    public void OpenChatWith(string message)
-    {
-        if (!string.IsNullOrEmpty(message))
-        {
+            string message = $"/tell {viewer.Name}@{viewer.World} ";
             //ChatGui.OpenChat(message, false);
         }
     }
 
-
-    // Method to copy player's name to clipboard
-    public void CopyPlayerName(ICharacter character)
+    // Methode zum Kopieren des Spielernamens in die Zwischenablage
+    public void CopyPlayerName(ViewerInfo viewer)
     {
-        if (character != null)
+        if (viewer != null)
         {
-            ImGui.SetClipboardText(character.Name.TextValue);
-            ChatGui.Print($"Copied {character.Name.TextValue} to clipboard.");
+            string name = $"{viewer.Name}@{viewer.World}";
+            ImGui.SetClipboardText(name);
+            ChatGui.Print($"Kopiert {name} in die Zwischenablage.");
         }
     }
 
-    // Method to open the Adventurer Plate (not possible directly, so we inform the user)
-    public void ShowAdventurerPlateInfo(ICharacter character)
+    // ViewerInfo-Klasse zur Speicherung von Betrachterinformationen
+    public class ViewerInfo
     {
-        if (character != null)
-        {
-            // Inform the user that they can search for the player's Adventurer Plate
-            ChatGui.Print($"To view {character.Name}'s Adventurer Plate, please use the in-game search.");
-        }
+        public string Name { get; set; }
+        public string World { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime FirstSeen { get; set; }
+        public DateTime LastSeen { get; set; }
     }
-
-    // Expose viewer timestamps to MainWindow
-    public Dictionary<ulong, DateTime> GetViewerTimestamps()
-    {
-        return viewerTimestamps;
-    }
-    public void OpenAdventurerPlate(ICharacter viewer)
-    {
-        if (viewer == null)
-            return;
-
-        // Get the Agent for Adventurer Plate
-
-        var agent = GameGui.GetAddonByName("Adventure Plate");
-
-        if (agent == IntPtr.Zero)
-        {
-            // Optionally display a message if the agent is not found
-            ChatGui.PrintError("Could not find Adventurer Plate.");
-            return;
-        }
-
-        // Prepare the data for opening the Adventurer Plate
-        var playerObjectId = viewer.GameObjectId;
-
-        // Marshal the function to open the Adventurer Plate
-        unsafe
-        {
-            var agentAdventurerPlate = (AgentAdventurerPlate*)agent;
-
-            if (agentAdventurerPlate != null)
-            {
-                agentAdventurerPlate->OpenPlate(playerObjectId);
-            }
-            else
-            {
-                ChatGui.PrintError("AgentAdventurerPlate is null.");
-            }
-        }
-    }
-}
-
-// Define the AgentAdventurerPlate struct
-[StructLayout(LayoutKind.Explicit)]
-public unsafe struct AgentAdventurerPlate
-{
-    [FieldOffset(0x0)] public IntPtr vtbl;
-
-    public void OpenPlate(ulong objectId)
-    {
-        // The function signature may vary; this is an example
-        var openPlateDelegate = Marshal.GetDelegateForFunctionPointer<OpenPlateDelegate>(vtbl);
-        openPlateDelegate(this, objectId);
-    }
-
-    [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
-    private delegate void OpenPlateDelegate(AgentAdventurerPlate agent, ulong objectId);
 }
