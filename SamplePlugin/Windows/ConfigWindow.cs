@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Numerics;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
+using PeepingTim;
 
-namespace SamplePlugin.Windows;
+namespace PeepingTim.Windows;
 
 public class ConfigWindow : Window, IDisposable
 {
