@@ -2,9 +2,11 @@ using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using System;
 using System.Collections.Generic;
-using Dalamud.Game.ClientState.Objects.Types;
 using System.Numerics;
 using System.Linq;
+using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using System.Xml.Linq;
 
 namespace PeepingTim.Windows
 {
@@ -12,7 +14,8 @@ namespace PeepingTim.Windows
     {
         private Plugin Plugin;
 
-        private bool soundEnabled = true;
+        private bool soundEnabled = false;
+        Dictionary<string, string> messageInputs = new Dictionary<string, string>();
 
         public MainWindow(Plugin plugin) : base(
             "PeepingTim",
@@ -33,34 +36,46 @@ namespace PeepingTim.Windows
 
         public override void Draw()
         {
-            // Checkbox for sound notifications
+            // Checkbox für Sound-Benachrichtigungen
             ImGui.Checkbox("Enable Sound Notifications", ref soundEnabled);
             Plugin.SoundEnabled = soundEnabled;
 
-            var currentViewers = Plugin.GetCurrentViewers();
-            var pastViewers = Plugin.GetPastViewers();
-            var viewerTimestamps = Plugin.GetViewerTimestamps();
+            var viewers = Plugin.GetViewers();
 
+            ImGui.Button("Hey");
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) {
+                Plugin.OpenChatWith(
+                    new Plugin.ViewerInfo
+                    {
+                        Name = "Liz Blackstone",
+                        World = "Twintania",
+                        IsActive = true,
+                        isLoaded = true,
+                        FirstSeen = DateTime.Now,
+                        LastSeen = DateTime.Now
+                    }, "heyo");
+            }
+            
             ImGui.Text("Peeper:");
 
-            if (pastViewers.Count > 0)
+            if (viewers.Count > 0)
             {
-                foreach (var viewer in pastViewers)
+                foreach (var viewer in viewers)
                 {
-                    bool isActive = currentViewers.Exists(v => v.GameObjectId == viewer.Key.GameObjectId);
-                    bool isTargetable = viewer.Value;
-                    var name = $"{viewer.Key.Name}";
-                    var timestamp = viewerTimestamps.ContainsKey(viewer.Key.Name) ? viewerTimestamps[viewer.Key.Name].ToString("HH:mm") : "";
+                    var name = $"{viewer.Name}@{viewer.World}";
+                    var timestamp = viewer.LastSeen.ToString("HH:mm");
 
-                    if (isActive)
+                    if (viewer.IsActive)
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.0431f, 0.9569f, 0.1804f, 1.0000f)); // Weiß für aktive Betrachter
-                    } else if (isTargetable)
+                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.0431f, 0.9569f, 0.1804f, 1.0000f)); // Grün für aktive Betrachter
+                    }
+                    else if (!viewer.isLoaded)
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.5f, 0.5f, 0.5f, 1f));
+                    }
+                    else
                     {
                         ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1f, 1f, 1f, 1f)); // Weiß für frühere Betrachter
-                    } else
-                    {
-                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.5f, 0.5f, 0.5f, 1f)); // Grau für frühere nicht anvisierbare Betrachter
                     }
 
                     // Starten einer neuen Gruppe
@@ -89,36 +104,42 @@ namespace PeepingTim.Windows
                     // Erstellen eines unsichtbaren Buttons über die gesamte Zeile für Hover- und Klick-Ereignisse
                     Vector2 itemSize = new Vector2(windowWidth - cursorPos.X, ImGui.GetTextLineHeightWithSpacing());
                     ImGui.SetCursorScreenPos(cursorPos);
-                    ImGui.InvisibleButton($"##viewer_{viewer.Key.GameObjectId}", itemSize);
+                    ImGui.InvisibleButton($"##viewer_{name}", itemSize);
 
                     // Interaktionen behandeln
                     if (ImGui.IsItemHovered())
                     {
-                        Plugin.HighlightCharacter(viewer.Key);
+                        Plugin.HighlightCharacter(viewer);
                     }
 
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
                     {
-                        Plugin.TargetCharacter(viewer.Key);
+                        Plugin.TargetCharacter(viewer);
+                        ImGui.SetWindowFocus(null);
                     }
 
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     {
-                        ImGui.OpenPopup($"ContextMenu_{viewer.Key.GameObjectId}");
+                        ImGui.OpenPopup($"ContextMenu_{name}");
                     }
 
-                    // Begin the context menu popup
-                    if (ImGui.BeginPopup($"ContextMenu_{viewer.Key.GameObjectId}"))
+                    // Begin des Kontextmenüs
+                    if (ImGui.BeginPopup($"ContextMenu_{name}"))
                     {
+                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1f, 1f, 1f, 1f));
                         if (ImGui.MenuItem("Send Tell"))
                         {
-                            Plugin.SendChatCommand("tell", viewer.Key);
+                            Plugin.OpenMessageWindow(viewer);
                         }
-                        if (ImGui.MenuItem("View Adventurer Plate"))
+                        if (viewer.isLoaded)
                         {
-                            Plugin.OpenAdventurerPlate(viewer.Key);
+                            if (ImGui.MenuItem("View Adventure Plate"))
+                            {
+                                //Plugin.OpenAdventurePlate(viewer);
+                            }
                         }
                         ImGui.EndPopup();
+                        ImGui.PopStyleColor();
                     }
 
                     ImGui.PopStyleColor();
