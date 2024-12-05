@@ -14,7 +14,7 @@ namespace PeepingTim.Windows
 
         public MessageWindow(Plugin plugin, Plugin.ViewerInfo viewer) : base(
             $"Send Tell to {viewer.Name}@{viewer.World}",
-            ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+            ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoResize)
         {
             this.Plugin = plugin;
             this.Viewer = viewer;
@@ -23,7 +23,7 @@ namespace PeepingTim.Windows
             this.SizeConstraints = new WindowSizeConstraints
             {
                 MinimumSize = new Vector2(300, 200),
-                MaximumSize = new Vector2(600, 400)
+                MaximumSize = new Vector2(300, 200)
             };
 
             // Fenster beim Erstellen öffnen
@@ -37,8 +37,30 @@ namespace PeepingTim.Windows
         public override void Draw()
         {
             ImGui.Text($"Send a message to {Viewer.Name}@{Viewer.World}:");
-            ImGui.InputTextMultiline("##messageInput", ref message, 1024, new Vector2(-1, 100));
 
+            // Fokus auf das Textfeld setzen, wenn das Fenster erscheint
+            if (ImGui.IsWindowAppearing())
+            {
+                ImGui.SetKeyboardFocusHere();
+            }
+
+            // InputTextMultiline mit EnterReturnsTrue Flag
+            if (ImGui.InputTextMultiline("##messageInput", ref message, 1024, new Vector2(-1, 100), ImGuiInputTextFlags.EnterReturnsTrue))
+            {
+                // Aktion ausführen, wenn Enter gedrückt wurde
+                if (!string.IsNullOrEmpty(message))
+                {
+                    Plugin.OpenChatWith(Viewer, message);
+                    message = "";
+                    this.IsOpen = false; // Fenster schließen
+                }
+                else
+                {
+                    Plugin.ChatGui.PrintError("Please enter a message before sending.");
+                }
+            }
+
+            // "Send"-Button
             if (ImGui.Button("Send"))
             {
                 if (!string.IsNullOrEmpty(message))
@@ -52,11 +74,15 @@ namespace PeepingTim.Windows
                     Plugin.ChatGui.PrintError("Please enter a message before sending.");
                 }
             }
+
             ImGui.SameLine();
+
+            // "Cancel"-Button
             if (ImGui.Button("Cancel"))
             {
                 this.IsOpen = false; // Fenster schließen
             }
         }
+
     }
 }

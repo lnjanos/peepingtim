@@ -3,130 +3,124 @@ using ImGuiNET;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Linq;
+using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using Dalamud.Game.ClientState.Objects.SubKinds;
+using ECommons.DalamudServices;
+using ECommons.Logging;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using ECommons.GameFunctions;
+using ECommons.EzEventManager;
+using ECommons.PartyFunctions;
+using ECommons.Throttlers;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using System.Xml.Linq;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
+using static System.Net.Mime.MediaTypeNames;
+using Dalamud.IoC;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace PeepingTim.Windows
 {
     public class MainWindow : Window, IDisposable
     {
         private Plugin Plugin;
-
-        private bool soundEnabled = false;
-        Dictionary<string, string> messageInputs = new Dictionary<string, string>();
-
+        
         public MainWindow(Plugin plugin) : base(
-            "PeepingTim",
+            "Peeping Tim",
             ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
         {
             this.SizeConstraints = new WindowSizeConstraints
             {
-                MinimumSize = new Vector2(250, 300),
-                MaximumSize = new Vector2(600, 800)
+                MinimumSize = new Vector2(250, 150),
+                MaximumSize = new Vector2(250, 800)
             };
+
+            Size = new Vector2(250, 200);
+            SizeCondition = ImGuiCond.FirstUseEver;
+
 
             this.Plugin = plugin;
         }
 
         public void Dispose()
         {
+            // Ressourcenfreigabe, falls nötig
         }
 
         public override void Draw()
         {
-            // Checkbox für Sound-Benachrichtigungen
-            ImGui.Checkbox("Enable Sound Notifications", ref soundEnabled);
-            Plugin.SoundEnabled = soundEnabled;
-
             var viewers = Plugin.GetViewers();
 
-            ImGui.Button("Hey");
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Left)) {
-                Plugin.OpenChatWith(
-                    new Plugin.ViewerInfo
-                    {
-                        Name = "Liz Blackstone",
-                        World = "Twintania",
-                        IsActive = true,
-                        isLoaded = true,
-                        FirstSeen = DateTime.Now,
-                        LastSeen = DateTime.Now
-                    }, "heyo");
-            }
-            
             ImGui.Text("Peeper:");
+            ImGui.SameLine();
+            ImGui.TextDisabled("(?)");
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.BeginTooltip();
+                ImGui.PushTextWrapPos(ImGui.GetFontSize() * 20f);
+                ImGui.TextUnformatted("Leftclick -> Target | Rightclick -> Functions");
+                ImGui.PopTextWrapPos();
+                ImGui.EndTooltip();
+            }
 
+            ImGui.BeginChild("UserList", new Vector2(0, -ImGui.GetFrameHeightWithSpacing()), true, ImGuiWindowFlags.HorizontalScrollbar);
             if (viewers.Count > 0)
             {
                 foreach (var viewer in viewers)
                 {
-                    var name = $"{viewer.Name}@{viewer.World}";
-                    var timestamp = viewer.LastSeen.ToString("HH:mm");
 
                     if (viewer.IsActive)
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.0431f, 0.9569f, 0.1804f, 1.0000f)); // Grün für aktive Betrachter
+                        ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.targetingColor); 
                     }
                     else if (!viewer.isLoaded)
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.5f, 0.5f, 0.5f, 1f));
+                        ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.unloadedColor); 
                     }
                     else
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1f, 1f, 1f, 1f)); // Weiß für frühere Betrachter
+                        ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.loadedColor); 
                     }
 
-                    // Starten einer neuen Gruppe
-                    ImGui.BeginGroup();
+                    var time = viewer.LastSeen.ToString("HH:mm");
+                    ImGui.Selectable(viewer.Name, false);
+                    var windowWidth = ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
+                    ImGui.PopStyleColor();
 
-                    // Speichern der aktuellen Cursorposition
-                    Vector2 cursorPos = ImGui.GetCursorScreenPos();
-
-                    // Zeichnen des Namens
-                    ImGui.Text(name);
-
-                    // Berechnen der Größe des Zeitstempels
-                    Vector2 timestampSize = ImGui.CalcTextSize(timestamp);
-
-                    // Positionieren des Cursors für den Zeitstempel
-                    float windowWidth = ImGui.GetWindowContentRegionMax().X + ImGui.GetWindowPos().X;
-                    float timestampPosX = windowWidth - timestampSize.X - ImGui.GetStyle().ItemSpacing.X;
-                    ImGui.SetCursorScreenPos(new Vector2(timestampPosX, cursorPos.Y));
-
-                    // Zeichnen des Zeitstempels
-                    ImGui.Text(timestamp);
-
-                    // Beenden der Gruppe
-                    ImGui.EndGroup();
-
-                    // Erstellen eines unsichtbaren Buttons über die gesamte Zeile für Hover- und Klick-Ereignisse
-                    Vector2 itemSize = new Vector2(windowWidth - cursorPos.X, ImGui.GetTextLineHeightWithSpacing());
-                    ImGui.SetCursorScreenPos(cursorPos);
-                    ImGui.InvisibleButton($"##viewer_{name}", itemSize);
-
-                    // Interaktionen behandeln
+                    // Handle hover and click events
                     if (ImGui.IsItemHovered())
+                    {
+                        if (viewer.isLoaded && !viewer.isFocused)
+                        {
+                            foreach (var v in viewers)
+                            {
+                                if (v.isFocused)
+                                {
+                                    Plugin.HighlightCharacter(v);
+                                }
+                            }
+                            Plugin.HighlightCharacter(viewer);
+                        }
+
+                        if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                        {
+                            Plugin.TargetCharacter(viewer);
+                            ImGui.SetWindowFocus(null);
+                        }
+
+                        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                        {
+                            ImGui.OpenPopup($"ContextMenu_{viewer.Name}");
+                        }
+                    }
+                    else if (viewer.isFocused)
                     {
                         Plugin.HighlightCharacter(viewer);
                     }
 
-                    if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                    if (ImGui.BeginPopup($"ContextMenu_{viewer.Name}"))
                     {
-                        Plugin.TargetCharacter(viewer);
-                        ImGui.SetWindowFocus(null);
-                    }
-
-                    if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-                    {
-                        ImGui.OpenPopup($"ContextMenu_{name}");
-                    }
-
-                    // Begin des Kontextmenüs
-                    if (ImGui.BeginPopup($"ContextMenu_{name}"))
-                    {
-                        ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1f, 1f, 1f, 1f));
                         if (ImGui.MenuItem("Send Tell"))
                         {
                             Plugin.OpenMessageWindow(viewer);
@@ -135,20 +129,50 @@ namespace PeepingTim.Windows
                         {
                             if (ImGui.MenuItem("View Adventure Plate"))
                             {
-                                //Plugin.OpenAdventurePlate(viewer);
+                                foreach (var x in Svc.Objects)
+                                {
+                                    if (x is IPlayerCharacter pc && pc.Name.ToString() == viewer.Name && Plugin.GetWorldName(pc.HomeWorld.RowId) == viewer.World)
+                                    {
+                                        unsafe
+                                        {
+                                            GameObject* xStruct = x.Struct();
+                                            AgentCharaCard.Instance()->OpenCharaCard(xStruct);
+                                            
+                                        }
+                                        PluginLog.Debug($"Opening characard via gameobject {x}");
+                                    }
+                                }
                             }
                         }
                         ImGui.EndPopup();
-                        ImGui.PopStyleColor();
                     }
 
+                    if (viewer.IsActive)
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.targetingColor);
+                    }
+                    else if (!viewer.isLoaded)
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.unloadedColor); 
+                    }
+                    else
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.loadedColor);
+                    }
+                    ImGui.SameLine(windowWidth - ImGui.CalcTextSize(time).X);
+                    ImGui.TextUnformatted(time);
                     ImGui.PopStyleColor();
+
                 }
+
             }
             else
             {
                 ImGui.Text("No viewers yet.");
             }
+            ImGui.EndChild();
         }
+
+
     }
 }

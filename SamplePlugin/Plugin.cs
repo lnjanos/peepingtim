@@ -18,6 +18,16 @@ using Lumina.Excel.Sheets;
 using System.Diagnostics;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using Dalamud.Game.Text;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using ECommons;
+using ECommons.Automation;
+using ECommons.GameFunctions;
+using NAudio.Wave;
+using System.Threading;
+using System.Linq;
+using ECommons.Logging;
+using System.IO;
 
 namespace PeepingTim;
 
@@ -32,27 +42,22 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
-
     
-
     private const string CommandName1 = "/ptim";
     private const string CommandName2 = "/peepingtim";
+    private const string CommandName3 = "/ptimconfig";
     private Dictionary<string, MessageWindow> messageWindows = new();
 
     public Configuration Configuration { get; init; }
 
-    public readonly WindowSystem WindowSystem = new("PeepingTim");
+    public readonly WindowSystem WindowSystem = new("Peeping Tim");
     private MainWindow MainWindow { get; init; }
+    private ConfigWindow ConfigWindow { get; init; }
 
-    // Dictionary to store viewer information
     private Dictionary<string, ViewerInfo> viewers = new();
 
-    // Cache for world names
     private readonly Dictionary<uint, string> worldNames = new();
 
-    public bool SoundEnabled = false;
-
-    // For update rate control
     private long lastUpdateTick = 0;
     private const int UpdateIntervalMs = 100;
 
@@ -64,10 +69,11 @@ public sealed class Plugin : IDalamudPlugin
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         MainWindow = new MainWindow(this);
+        ConfigWindow = new ConfigWindow(this);
 
         WindowSystem.AddWindow(MainWindow);
+        WindowSystem.AddWindow(ConfigWindow);
 
-        // Add commands
         CommandManager.AddHandler(CommandName1, new CommandInfo(OnCommand)
         {
             HelpMessage = "Opens P-Tim Window."
@@ -78,9 +84,16 @@ public sealed class Plugin : IDalamudPlugin
             HelpMessage = "Opens P-Tim Window."
         });
 
-        PluginInterface.UiBuilder.Draw += DrawUI;
+        CommandManager.AddHandler(CommandName3, new CommandInfo(OnConfig)
+        {
+            HelpMessage = "Opens P-Tim Config."
+        });
 
-        // Load world names
+        PluginInterface.UiBuilder.Draw += DrawUI;
+        PluginInterface.UiBuilder.OpenConfigUi += DrawConfig;
+        PluginInterface.UiBuilder.OpenMainUi += DrawMain;
+
+
         var worldSheet = DataManager.GetExcelSheet<World>();
         if (worldSheet != null)
         {
@@ -90,7 +103,8 @@ public sealed class Plugin : IDalamudPlugin
             }
         }
 
-        // Register update method
+        ECommonsMain.Init(PluginInterface, this);
+
         Framework.Update += OnUpdate;
     }
 
@@ -99,9 +113,11 @@ public sealed class Plugin : IDalamudPlugin
         WindowSystem.RemoveAllWindows();
 
         MainWindow.Dispose();
+        ConfigWindow.Dispose();
 
         CommandManager.RemoveHandler(CommandName1);
         CommandManager.RemoveHandler(CommandName2);
+        CommandManager.RemoveHandler(CommandName3);
 
         Framework.Update -= OnUpdate;
     }
@@ -111,7 +127,14 @@ public sealed class Plugin : IDalamudPlugin
         MainWindow.IsOpen = true;
     }
 
+    private void OnConfig(string command, string args)
+    {
+        ConfigWindow.IsOpen = true;
+    }
+
     private void DrawUI() => WindowSystem.Draw();
+    private void DrawConfig() => OnConfig("/ptimconfig", "");
+    private void DrawMain() => OnCommand("/ptim", "");
 
     public void PrintCommands()
     {
@@ -121,12 +144,17 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
+    public void SendError(string message)
+    {
+        ChatGui.PrintError(message);
+    }
+
     private void OnUpdate(IFramework framework)
     {
         long currentTick = DateTimeOffset.Now.ToUnixTimeMilliseconds();
         if (currentTick - lastUpdateTick < UpdateIntervalMs)
         {
-            return; // Noch nicht genug Zeit vergangen
+            return;
         }
         lastUpdateTick = currentTick;
 
@@ -146,7 +174,6 @@ public sealed class Plugin : IDalamudPlugin
 
         ulong localPlayerId = ClientState.LocalPlayer.GameObjectId;
 
-        // Temporäre Liste der aktuellen Betrachter
         var currentlyLookingAtMe = new HashSet<string>();
 
         foreach (var obj in ObjectTable)
@@ -161,57 +188,111 @@ public sealed class Plugin : IDalamudPlugin
 
                     if (!viewers.TryGetValue(key, out var viewerInfo))
                     {
-                        // Neuer Betrachter
                         viewerInfo = new ViewerInfo
                         {
                             Name = character.Name.TextValue,
                             World = GetWorldName(character.HomeWorld.RowId),
                             IsActive = true,
                             isLoaded = true,
+                            isFocused = false,
+                            soundPlayed = false,
                             FirstSeen = DateTime.Now,
                             LastSeen = DateTime.Now
                         };
                         viewers[key] = viewerInfo;
 
-                        // Optionally play a sound when a new viewer starts watching
-                        if (SoundEnabled)
-                        {
-                            // Play sound notification here if desired
-                        }
                     }
                     else
                     {
-                        // Bereits bekannter Betrachter, Status aktualisieren
                         viewerInfo.IsActive = true;
                         viewerInfo.LastSeen = DateTime.Now;
                     }
+                    if (Configuration.SoundEnabled && !viewerInfo.soundPlayed)
+                    {
+                        try
+                        {
+                            PlaySound();
+                            viewerInfo.soundPlayed = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            ChatGui.PrintError($"Error Sound 3: {ex.Message}");
+                        }
+                    }
+
                 }
             }
         }
 
-        // Betrachter, die nicht mehr schauen, als inaktiv markieren
         foreach (var viewerInfo in viewers.Values)
         {
             if (!currentlyLookingAtMe.Contains(GetViewerKey(viewerInfo)))
             {
                 viewerInfo.IsActive = false;
+                viewerInfo.soundPlayed = false;
             }
         }
-
-        // Optional: Entfernen von Betrachtern, die seit mehr als 10 Minuten nicht mehr gesehen wurden
-        // viewers = viewers.Where(v => (DateTime.Now - v.Value.LastSeen).TotalMinutes <= 10).ToDictionary(v => v.Key, v => v.Value);
     }
 
-    // Methoden zum Abrufen der Betrachter
     public List<ViewerInfo> GetViewers()
     {
-        // Sortieren der Betrachter: Zuerst aktive, dann nach Zeitpunkt
         return viewers.Values
             .OrderByDescending(v => v.IsActive)
             .ThenByDescending(v => v.LastSeen)
-            .Take(15) // Begrenzen auf die Top 15
+            .Take(15)
             .ToList();
     }
+
+    public void PlaySound()
+    {
+        new Thread(() =>
+        {
+            try
+            {
+                WaveStream reader;
+                string soundFilePath = Path.Combine(PluginInterface.AssemblyLocation.DirectoryName!, "assets", "alert.wav");
+
+                if (!File.Exists(soundFilePath))
+                {
+                    ChatGui.PrintError("Didn't find: " + soundFilePath);
+                    return;
+                }
+
+                reader = new WaveFileReader(soundFilePath);
+
+                using var channel = new WaveChannel32(reader)
+                {
+                    Volume = Configuration.SoundVolume, // Lautstärke von 0.0 bis 1.0
+                    PadWithZeroes = false
+                };
+
+                using (reader)
+                {
+                    using var output = new WaveOutEvent(); // Standardausgabegerät verwenden
+
+                    try
+                    {
+                        output.Init(channel);
+                        output.Play();
+
+                        while (output.PlaybackState == PlaybackState.Playing)
+                        {
+                            Thread.Sleep(100);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ChatGui.PrintError($"Error playing sound 1: {ex}");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                ChatGui.PrintError($"Error playing sound 2: {e}");
+            }
+        }).Start();
+    }
+
 
     public string GetWorldName(uint rowId)
     {
@@ -224,7 +305,6 @@ public sealed class Plugin : IDalamudPlugin
 
     private string GetPlayerKey(IPlayerCharacter character)
     {
-        // Eindeutiger Schlüssel aus Name und Welt
         string worldName = GetWorldName(character.HomeWorld.RowId);
         return $"{character.Name.TextValue}@{worldName}";
     }
@@ -234,7 +314,6 @@ public sealed class Plugin : IDalamudPlugin
         return $"{viewer.Name}@{viewer.World}";
     }
 
-    // Methode zum Auswählen eines Ziels
     public void TargetCharacter(ViewerInfo viewer)
     {
         if (viewer != null)
@@ -246,12 +325,11 @@ public sealed class Plugin : IDalamudPlugin
             }
             else
             {
-                ChatGui.PrintError($"Charakter {viewer.Name} nicht gefunden.");
+                ChatGui.PrintError($"Character {viewer.Name} can't be targeted.");
             }
         }
     }
 
-    // Methode zum Hervorheben eines Charakters
     public void HighlightCharacter(ViewerInfo viewer)
     {
         if (viewer != null)
@@ -259,13 +337,19 @@ public sealed class Plugin : IDalamudPlugin
             var character = FindCharacterInObjectTable(viewer);
             if (character != null)
             {
-                TargetManager.MouseOverTarget = character;
+                if (viewer.isFocused)
+                {
+                    TargetManager.FocusTarget = null;
+                } else
+                {
+                    TargetManager.FocusTarget = character;
+                }
+                viewer.isFocused = !viewer.isFocused;
             }
         }
     }
 
-    // Hilfsmethode zum Finden eines Charakters in der ObjectTable
-    private IPlayerCharacter? FindCharacterInObjectTable(ViewerInfo viewer)
+    public IPlayerCharacter? FindCharacterInObjectTable(ViewerInfo viewer)
     {
         foreach (var obj in ObjectTable)
         {
@@ -284,7 +368,6 @@ public sealed class Plugin : IDalamudPlugin
     {
         var loadedViewers = new List<ViewerInfo>();
 
-        // Erstellen eines HashSets von Spieler-Schlüsseln (Name@Welt) aus der ObjectTable
         var objectTableKeys = new HashSet<string>();
         foreach (var obj in ObjectTable)
         {
@@ -296,7 +379,6 @@ public sealed class Plugin : IDalamudPlugin
             }
         }
 
-        // Überprüfen, welche Viewer noch geladen sind
         foreach (var viewer in viewerList)
         {
             string key = $"{viewer.Name}@{viewer.World}";
@@ -310,7 +392,6 @@ public sealed class Plugin : IDalamudPlugin
     }
 
 
-    // Methode zum Senden von Chat-Befehlen
     public void SendChatCommand(string command, ViewerInfo viewer)
     {
         if (viewer != null)
@@ -326,14 +407,10 @@ public sealed class Plugin : IDalamudPlugin
         if (viewer != null)
         {
             string command = $"/tell {viewer.Name}@{viewer.World} {message}";
-            if (!CommandManager.ProcessCommand(command))
-            {
-                ChatGui.PrintError($"error with executing: {command}");
-            }
+            Chat.Instance.SendMessage(command);
         }
     }
 
-    // Methode zum Kopieren des Spielernamens in die Zwischenablage
     public void CopyPlayerName(ViewerInfo viewer)
     {
         if (viewer != null)
@@ -344,7 +421,6 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    // Methode zum Öffnen eines MessageWindow
     public void OpenMessageWindow(ViewerInfo viewer)
     {
         string key = $"{viewer.Name}@{viewer.World}";
@@ -357,12 +433,10 @@ public sealed class Plugin : IDalamudPlugin
         }
         else
         {
-            // Falls das Fenster bereits geöffnet ist, bringen wir es in den Fokus
             messageWindows[key].IsOpen = true;
         }
     }
 
-    // Methode zum Schließen eines MessageWindow
     public void CloseMessageWindow(ViewerInfo viewer)
     {
         string key = $"{viewer.Name}@{viewer.World}";
@@ -375,13 +449,14 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    // ViewerInfo-Klasse zur Speicherung von Betrachterinformationen
     public class ViewerInfo
     {
         public string Name { get; set; } = string.Empty;
         public string World { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public bool isLoaded { get; set; }
+        public bool isFocused { get; set; }
+        public bool soundPlayed { get; set; }
         public DateTime FirstSeen { get; set; }
         public DateTime LastSeen { get; set; }
     }
