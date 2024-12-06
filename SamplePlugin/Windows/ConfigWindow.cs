@@ -8,7 +8,7 @@ namespace PeepingTim.Windows
     public class ConfigWindow : Window, IDisposable
     {
         private Configuration Configuration;
-        private Plugin Plugin; // Referenz auf das Plugin
+        private Plugin Plugin;
 
         public ConfigWindow(Plugin plugin) : base("Peeping Tim Settings")
         {
@@ -45,7 +45,6 @@ namespace PeepingTim.Windows
                     ImGui.Text("General Settings");
                     ImGui.Separator();
 
-                    // Enable Sound
                     var soundEnabled = Configuration.SoundEnabled;
                     if (ImGui.Checkbox("Enable Sound", ref soundEnabled))
                     {
@@ -53,10 +52,8 @@ namespace PeepingTim.Windows
                         Configuration.Save();
                     }
 
-                    // Wenn Sound aktiviert ist, zeige Slider und Test-Button
                     if (Configuration.SoundEnabled)
                     {
-                        // Volume Slider
                         float volume = Configuration.SoundVolume;
                         if (ImGui.SliderFloat("Volume", ref volume, 0.0f, 1.0f, "Volume: %.2f"))
                         {
@@ -64,10 +61,8 @@ namespace PeepingTim.Windows
                             Configuration.Save();
                         }
 
-                        // Test Sound Button
                         if (ImGui.Button("Test Sound"))
                         {
-                            // Ruft die Plugin-Methode auf, um den Sound abzuspielen
                             Plugin.PlaySound();
                         }
                     }

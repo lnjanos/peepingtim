@@ -1,6 +1,7 @@
 using Dalamud.Configuration;
 using Dalamud.Plugin;
 using System;
+using System.IO;
 using System.Numerics;
 
 namespace PeepingTim;
@@ -14,6 +15,8 @@ public class Configuration : IPluginConfiguration
     public bool SomePropertyToBeSavedAndWithADefault { get; set; } = true;
     public bool SoundEnabled { get; set; } = false; // user configerable
     public float SoundVolume { get; set; } = 0.5f;
+
+    public string SoundFilePath { get; set; } = Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName!, "assets", "alert.wav");
 
     public Vector4 targetingColor { get; set; } = new Vector4(0.0431f, 0.9569f, 0.1804f, 1.0000f);// user configerable
     public Vector4 unloadedColor { get; set; } = new Vector4(0.5f, 0.5f, 0.5f, 1f);// user configerable
