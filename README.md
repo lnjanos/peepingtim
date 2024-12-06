@@ -16,8 +16,8 @@
 ## Installation
 
 1. **Prerequisite:** This plugin requires [Dalamud](https://github.com/goatcorp/Dalamud), which comes with the [FFXIVLauncher (Goatcorp)](https://github.com/goatcorp/FFXIVQuickLauncher).
-2. **Add the Repository:** If not already done, add this plugin’s GitHub repository to the Dalamud Plugin Installer.
-3. **Install the Plugin:** In-game, open the Dalamud Plugins menu (usually by typing **`/xlplugins`**), search for **PeepingTim**, and click **Install**.
+2. **Add the Repository:** If not already done, add this plugin’s GitHub repository "https://raw.githubusercontent.com/lnjanos/peepingtim/refs/heads/master/SamplePlugin/popopipi.json" to the Dalamud Settings **`/xlsettings`**.
+3. **Install the Plugin:** In-game, open the Dalamud Plugins menu (usually by typing **`/xlplugins`**), search for **Peeping Tim**, and click **Install**.
 
 ## Usage
 
