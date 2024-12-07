@@ -28,6 +28,7 @@ using System.Threading;
 using System.Linq;
 using ECommons.Logging;
 using System.IO;
+using FFXIVClientStructs.FFXIV.Client.Sound;
 
 namespace PeepingTim;
 
@@ -53,6 +54,7 @@ public sealed class Plugin : IDalamudPlugin
     public readonly WindowSystem WindowSystem = new("Peeping Tim");
     private MainWindow MainWindow { get; init; }
     private ConfigWindow ConfigWindow { get; init; }
+    private Helpers.SoundManager SoundManager { get; init; }
 
     private Dictionary<string, ViewerInfo> viewers = new();
 
@@ -70,6 +72,7 @@ public sealed class Plugin : IDalamudPlugin
 
         MainWindow = new MainWindow(this);
         ConfigWindow = new ConfigWindow(this);
+        SoundManager = new Helpers.SoundManager(this);
 
         WindowSystem.AddWindow(MainWindow);
         WindowSystem.AddWindow(ConfigWindow);
@@ -211,7 +214,7 @@ public sealed class Plugin : IDalamudPlugin
                     {
                         try
                         {
-                            PlaySound();
+                            SoundManager.PlaySound();
                             viewerInfo.soundPlayed = true;
                         }
                         catch (Exception ex)
@@ -243,58 +246,7 @@ public sealed class Plugin : IDalamudPlugin
             .ToList();
     }
 
-    public void PlaySound()
-    {
-        new Thread(() =>
-        {
-            try
-            {
-                WaveStream reader;
-                string soundFilePath = Path.Combine(PluginInterface.AssemblyLocation.DirectoryName!, "assets", "alert.wav");
-
-                if (!File.Exists(soundFilePath))
-                {
-                    ChatGui.PrintError("Didn't find: " + soundFilePath);
-                    return;
-                }
-
-                reader = new WaveFileReader(soundFilePath);
-
-                using var channel = new WaveChannel32(reader)
-                {
-                    Volume = Configuration.SoundVolume, // Lautstärke von 0.0 bis 1.0
-                    PadWithZeroes = false
-                };
-
-                using (reader)
-                {
-                    using var output = new WaveOutEvent(); // Standardausgabegerät verwenden
-
-                    try
-                    {
-                        output.Init(channel);
-                        output.Play();
-
-                        while (output.PlaybackState == PlaybackState.Playing)
-                        {
-                            Thread.Sleep(100);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        ChatGui.PrintError($"Error playing sound 1: {ex}");
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                ChatGui.PrintError($"Error playing sound 2: {e}");
-            }
-        }).Start();
-    }
-
-
-    public string GetWorldName(uint rowId)
+public string GetWorldName(uint rowId)
     {
         if (worldNames.TryGetValue(rowId, out var worldName))
         {

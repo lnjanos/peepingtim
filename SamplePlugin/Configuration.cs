@@ -13,16 +13,17 @@ public class Configuration : IPluginConfiguration
 
     public bool IsConfigWindowMovable { get; set; } = true;
     public bool SomePropertyToBeSavedAndWithADefault { get; set; } = true;
-    public bool SoundEnabled { get; set; } = false; // user configerable
+    public bool SoundEnabled { get; set; } = false;
+    public bool SoundEnabledWindowClosed { get; set; } = false;
     public float SoundVolume { get; set; } = 0.5f;
+    public static string OriginalSoundFile { get; } = Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName!, "assets", "alert.wav");
+    public string SoundFilePath { get; set; } = OriginalSoundFile;
 
-    public string SoundFilePath { get; set; } = Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName!, "assets", "alert.wav");
+    public Vector4 targetingColor { get; set; } = new Vector4(0.0431f, 0.9569f, 0.1804f, 1.0000f);
+    public Vector4 unloadedColor { get; set; } = new Vector4(0.5f, 0.5f, 0.5f, 1f);
+    public Vector4 loadedColor { get; set; } = new Vector4(1f, 1f, 1f, 1f);
 
-    public Vector4 targetingColor { get; set; } = new Vector4(0.0431f, 0.9569f, 0.1804f, 1.0000f);// user configerable
-    public Vector4 unloadedColor { get; set; } = new Vector4(0.5f, 0.5f, 0.5f, 1f);// user configerable
-    public Vector4 loadedColor { get; set; } = new Vector4(1f, 1f, 1f, 1f);// user configerable
-
-    public string DevVersion = "1.0.0.0";
+    public string DevVersion = "1.0.1.0";
 
     public void Save()
     {
