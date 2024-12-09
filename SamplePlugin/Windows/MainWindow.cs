@@ -53,7 +53,7 @@ namespace PeepingTim.Windows
 
             // Title Section
             ImGui.Spacing();
-            ImGui.TextColored(new Vector4(0.9f, 0.9f, 0.9f, 1.0f), "Current Viewers");
+            ImGui.TextColored(Plugin.Configuration.titleColor, "Current Viewers");
             ImGui.SameLine();
             ImGui.TextDisabled("(?)");
             if (ImGui.IsItemHovered())

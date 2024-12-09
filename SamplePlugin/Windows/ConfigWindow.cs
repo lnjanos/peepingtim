@@ -231,15 +231,33 @@ namespace PeepingTim.Windows
                 // ----- COLORS TAB -----
                 if (ImGui.BeginTabItem("Colors"))
                 {
+                    var colorPickerFlags = ImGuiColorEditFlags.DisplayHex | ImGuiColorEditFlags.NoInputs;
+
                     ImGui.Spacing();
                     ImGui.TextColored(new Vector4(0.7f, 1.0f, 0.7f, 1.0f), "Color Customization");
                     ImGui.Separator();
                     ImGui.Spacing();
 
-                    ImGui.Text("Adjust the colors for different states:");
+                    ImGui.Text("Adjust the general colors:");
+                    ImGui.Indent();
                     ImGui.Spacing();
 
-                    var colorPickerFlags = ImGuiColorEditFlags.DisplayHex | ImGuiColorEditFlags.NoInputs;
+                    var titleColor = Configuration.titleColor;
+                    if (ImGui.ColorEdit4("Main Window Title", ref titleColor, colorPickerFlags))
+                    {
+                        Configuration.titleColor = titleColor;
+                        Configuration.Save();
+                    }
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("Color of 'Current Viewers'.");
+                    }
+
+                    ImGui.Unindent();
+
+                    ImGui.Text("Adjust the colors for different states:");
+                    ImGui.Indent();
+                    ImGui.Spacing();
 
                     // Active Color
                     var targetingColor = Configuration.targetingColor;
@@ -277,6 +295,7 @@ namespace PeepingTim.Windows
                         ImGui.SetTooltip("Color used for Peeper that are currently not loaded.");
                     }
 
+                    ImGui.Unindent();
                     ImGui.EndTabItem();
                 }
 
