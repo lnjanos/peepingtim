@@ -30,7 +30,7 @@ namespace PeepingTim.Helpers
         }
         public string CopySoundFileToPluginDirectory(string sourcePath)
         {
-            var pluginDirectory = Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName!, "assets");
+            var pluginDirectory = Path.Combine(AppContext.BaseDirectory, "assets");
 
             if (!Directory.Exists(pluginDirectory))
             {
@@ -46,8 +46,10 @@ namespace PeepingTim.Helpers
             return destinationPath;
         }
 
-        public void PlaySound()
+        public void PlaySound(bool playAnyway = false)
         {
+            if (!playAnyway && !Plugin.Configuration.SoundEnabledWindowClosed && !Plugin.IsMainWindowOpen()) return;
+
             new Thread(() =>
             {
                 try

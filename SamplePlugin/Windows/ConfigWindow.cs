@@ -18,22 +18,21 @@ using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using PeepingTim.Helpers;
 
-
 namespace PeepingTim.Windows
 {
     public class ConfigWindow : Window, IDisposable
     {
         private Configuration Configuration;
         private Plugin Plugin;
-        private FileDialogManager filedialog;
+        private FileDialogManager FileDialogManager;
         private SoundManager SoundManager;
 
         public ConfigWindow(Plugin plugin) : base("Peeping Tim Settings")
         {
             Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
-            Size = new Vector2(400, 350);
+            Size = new Vector2(450, 400);
             SizeCondition = ImGuiCond.FirstUseEver;
-            filedialog = new FileDialogManager();
+            FileDialogManager = new FileDialogManager();
             SoundManager = new SoundManager(plugin);
 
             this.Plugin = plugin;
@@ -56,14 +55,42 @@ namespace PeepingTim.Windows
 
         public override void Draw()
         {
+            FileDialogManager.Draw();
+
+            // General padding for a cleaner layout
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(15, 15));
 
             if (ImGui.BeginTabBar("##ConfigTabs"))
             {
+                // ----- GENERAL TAB -----
                 if (ImGui.BeginTabItem("General"))
                 {
-                    ImGui.Text("General Settings");
+                    ImGui.Spacing();
+                    ImGui.TextColored(new Vector4(1.0f, 0.84f, 0.0f, 1.0f), "General Settings");
                     ImGui.Separator();
+                    ImGui.Spacing();
+
+                    var startupstart = Configuration.StartOnStartup;
+                    if (ImGui.Checkbox("Start plugin on game startup", ref startupstart))
+                    {
+                        Configuration.StartOnStartup = startupstart;
+                        Configuration.Save();
+                    }
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("If enabled, the plugin will automatically start when you launch the game.");
+                    }
+
+                    ImGui.EndTabItem();
+                }
+
+                // ----- SOUND TAB -----
+                if (ImGui.BeginTabItem("Sound"))
+                {
+                    ImGui.Spacing();
+                    ImGui.TextColored(new Vector4(0.6f, 0.8f, 1.0f, 1.0f), "Sound Settings");
+                    ImGui.Separator();
+                    ImGui.Spacing();
 
                     var soundEnabled = Configuration.SoundEnabled;
                     if (ImGui.Checkbox("Enable Sound", ref soundEnabled))
@@ -71,34 +98,51 @@ namespace PeepingTim.Windows
                         Configuration.SoundEnabled = soundEnabled;
                         Configuration.Save();
                     }
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("Enable or disable the plugin’s sound playback.");
+                    }
 
+                    // Show other sound options only if sound is enabled
                     if (Configuration.SoundEnabled)
                     {
+                        ImGui.Indent();
+                        ImGui.Spacing();
+
                         float volume = Configuration.SoundVolume;
                         if (ImGui.SliderFloat("Volume", ref volume, 0.0f, 1.0f, "Volume: %.2f"))
                         {
                             Configuration.SoundVolume = volume;
                             Configuration.Save();
                         }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Adjust the volume for sound effects.");
+                        }
 
                         if (ImGui.Button("Test Sound"))
                         {
-                            SoundManager.PlaySound();
+                            SoundManager.PlaySound(true);
                         }
-                    }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Click to play a test sound with the current settings.");
+                        }
 
-                    if (Configuration.SoundEnabled)
-                    {
-                        bool soundwithoutwindow = Configuration.SoundEnabledWindowClosed;
-                        if (ImGui.Checkbox("Play sound when window is closed", ref soundwithoutwindow)) {
-                            Configuration.SoundEnabledWindowClosed = soundEnabled;
+                        ImGui.Spacing();
+                        var soundwithoutwindow = Configuration.SoundEnabledWindowClosed;
+                        if (ImGui.Checkbox("Play sound when window is closed", ref soundwithoutwindow))
+                        {
+                            Configuration.SoundEnabledWindowClosed = soundwithoutwindow;
                             Configuration.Save();
                         }
-                    }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("If enabled, sound will still play even if the main window is not visible.");
+                        }
 
-                    if (Configuration.SoundEnabled)
-                    {
-                        ImGui.TextUnformatted("Path to audio file");
+                        ImGui.Spacing();
+                        ImGui.TextUnformatted("Path to audio file:");
                         Vector2 buttonSize;
                         ImGui.PushFont(UiBuilder.IconFont);
                         try
@@ -111,21 +155,25 @@ namespace PeepingTim.Windows
                         }
 
                         var path = Configuration.SoundFilePath ?? "";
-                        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - buttonSize.X);
+                        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - buttonSize.X - 10);
                         if (ImGui.InputText("###sound-path", ref path, 1_000))
                         {
                             path = path.Trim();
                             bool isPath = path.Length == 0;
-
                             if (!isPath)
                             {
                                 string newpath = SoundManager.CopySoundFileToPluginDirectory(path);
-                                if ( newpath != "" ) Configuration.SoundFilePath = newpath;
-                            } else
+                                if (newpath != "") Configuration.SoundFilePath = newpath;
+                            }
+                            else
                             {
                                 Configuration.SoundFilePath = Configuration.OriginalSoundFile;
                             }
                             Configuration.Save();
+                        }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Specify the path to your preferred audio file.");
                         }
 
                         ImGui.SameLine();
@@ -135,14 +183,12 @@ namespace PeepingTim.Windows
                         {
                             if (ImGui.Button(FontAwesomeIcon.Folder.ToIconString()))
                             {
-                                filedialog.OpenFileDialog(
+                                FileDialogManager.OpenFileDialog(
                                     "Path to audio file",
                                     ".wav,.mp3,.aif,.aiff,.wma,.aac",
-                                    (selected, selectedPath) => {
-                                        if (!selected)
-                                        {
-                                            return;
-                                        }
+                                    (selected, selectedPath) =>
+                                    {
+                                        if (!selected) return;
 
                                         path = selectedPath.Trim();
                                         bool isPath = path.Length == 0;
@@ -166,16 +212,32 @@ namespace PeepingTim.Windows
                             ImGui.PopFont();
                         }
 
+                        if (ImGui.Button("Reset to Default Soundfile"))
+                        {
+                            Configuration.SoundFilePath = Configuration.OriginalSoundFile;
+                            Configuration.Save();
+                        }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Restores the default sound file that shipped with the plugin.");
+                        }
 
+                        ImGui.Unindent();
                     }
 
                     ImGui.EndTabItem();
                 }
 
+                // ----- COLORS TAB -----
                 if (ImGui.BeginTabItem("Colors"))
                 {
-                    ImGui.Text("Customize Colors");
+                    ImGui.Spacing();
+                    ImGui.TextColored(new Vector4(0.7f, 1.0f, 0.7f, 1.0f), "Color Customization");
                     ImGui.Separator();
+                    ImGui.Spacing();
+
+                    ImGui.Text("Adjust the colors for different states:");
+                    ImGui.Spacing();
 
                     var colorPickerFlags = ImGuiColorEditFlags.DisplayHex | ImGuiColorEditFlags.NoInputs;
 
@@ -186,6 +248,10 @@ namespace PeepingTim.Windows
                         Configuration.targetingColor = targetingColor;
                         Configuration.Save();
                     }
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("Color used when the target is peeping.");
+                    }
 
                     // Recent Color
                     var loadedColor = Configuration.loadedColor;
@@ -193,6 +259,10 @@ namespace PeepingTim.Windows
                     {
                         Configuration.loadedColor = loadedColor;
                         Configuration.Save();
+                    }
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("Color used for recently loaded/peeping targets.");
                     }
 
                     // Away Color
@@ -202,17 +272,29 @@ namespace PeepingTim.Windows
                         Configuration.unloadedColor = unloadedColor;
                         Configuration.Save();
                     }
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("Color used for Peeper that are currently not loaded.");
+                    }
 
                     ImGui.EndTabItem();
                 }
 
+                // ----- ABOUT TAB -----
                 if (ImGui.BeginTabItem("About"))
                 {
-                    ImGui.Text("Peeping Tim");
+                    ImGui.Spacing();
+                    ImGui.TextColored(new Vector4(1.0f, 0.8f, 0.8f, 1.0f), "About Peeping Tim");
                     ImGui.Separator();
+                    ImGui.Spacing();
+
+                    ImGui.Text("Peeping Tim");
+                    ImGui.Spacing();
                     ImGui.Text($"Version: {Configuration.DevVersion}");
                     ImGui.Text("Author: kcuY");
-                    ImGui.TextWrapped("Description: Just a different Version of Peeping Tom.");
+                    ImGui.Text("Discord (for feedback or issues): _yuck");
+                    ImGui.Spacing();
+                    ImGui.TextWrapped("Description: A slightly different version of Peeping Tom, offering additional functions.");
 
                     ImGui.EndTabItem();
                 }

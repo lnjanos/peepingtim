@@ -29,6 +29,7 @@ using System.Linq;
 using ECommons.Logging;
 using System.IO;
 using FFXIVClientStructs.FFXIV.Client.Sound;
+using ECommons.EzEventManager;
 
 namespace PeepingTim;
 
@@ -66,6 +67,8 @@ public sealed class Plugin : IDalamudPlugin
     private long lastLoadingTick = 0;
     private const int LoadingIntervalMs = 1500;
 
+    private bool firstDrawn = false;
+
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
@@ -96,6 +99,11 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenConfigUi += DrawConfig;
         PluginInterface.UiBuilder.OpenMainUi += DrawMain;
 
+        if (Configuration.StartOnStartup)
+        {
+            ClientState.Login += OnLogin;
+            ClientState.TerritoryChanged += OnTerritoryChanged;
+        }
 
         var worldSheet = DataManager.GetExcelSheet<World>();
         if (worldSheet != null)
@@ -122,6 +130,10 @@ public sealed class Plugin : IDalamudPlugin
         CommandManager.RemoveHandler(CommandName2);
         CommandManager.RemoveHandler(CommandName3);
 
+        PluginInterface.UiBuilder.Draw -= DrawUI;
+        PluginInterface.UiBuilder.OpenConfigUi -= DrawConfig;
+        PluginInterface.UiBuilder.OpenMainUi -= DrawMain;
+
         Framework.Update -= OnUpdate;
     }
 
@@ -134,6 +146,28 @@ public sealed class Plugin : IDalamudPlugin
     {
         ConfigWindow.IsOpen = true;
     }
+
+    private void OnLogin()
+    {
+        TryOpenMainWindow();
+    }
+
+    private void OnTerritoryChanged(ushort territoryId)
+    {
+        TryOpenMainWindow();
+    }
+
+    private void TryOpenMainWindow()
+    {
+        if (ClientState.IsLoggedIn && ClientState.LocalPlayer != null && !firstDrawn)
+        {
+            ClientState.Login -= OnLogin;
+            ClientState.TerritoryChanged -= OnTerritoryChanged;
+            firstDrawn = true;
+            MainWindow.IsOpen = true;
+        }
+    }
+
 
     private void DrawUI() => WindowSystem.Draw();
     private void DrawConfig() => OnConfig("/ptimconfig", "");
@@ -387,6 +421,11 @@ public string GetWorldName(uint rowId)
         {
             messageWindows[key].IsOpen = true;
         }
+    }
+
+    public bool IsMainWindowOpen()
+    {
+        return MainWindow.IsOpen;
     }
 
     public void CloseMessageWindow(ViewerInfo viewer)

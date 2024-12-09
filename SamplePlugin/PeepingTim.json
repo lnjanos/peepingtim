@@ -6,9 +6,9 @@
     "Tags": [
         "Peeping Tim"
     ],
-    "InternalName": "Peeping Tim",
-    "AssemblyVersion": "1.0.0.0",
-    "TestingAssemblyVersion": "1.0.0.0",
+    "InternalName": "PeepingTim",
+    "AssemblyVersion": "1.0.1.0",
+    "TestingAssemblyVersion": "1.0.1.0",
     "RepoUrl": "https://github.com/lnjanos/peepingtim",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 11,
@@ -17,8 +17,8 @@
     "IsTestingExclusive": "False",
     "DownloadCount": 1,
     "LastUpdate": 1733436251,
-    "DownloadLinkInstall": "https://github.com/lnjanos/peepingtim/raw/refs/heads/master/SamplePlugin/releases/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/lnjanos/peepingtim/raw/refs/heads/master/SamplePlugin/releases/latest.zip",
-    "DownloadLinkTesting": "https://github.com/lnjanos/peepingtim/raw/refs/heads/master/SamplePlugin/releases/testing.zip",
+    "DownloadLinkInstall": "https://github.com/lnjanos/peepingtim/releases/download/release/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/lnjanos/peepingtim/releases/download/release/latest.zip",
+    "DownloadLinkTesting": "https://github.com/lnjanos/peepingtim/releases/download/testing/testing.zip",
     "IconUrl": "https://raw.githubusercontent.com/lnjanos/peepingtim/refs/heads/master/SamplePlugin/assets/pipipopo.png"
 }

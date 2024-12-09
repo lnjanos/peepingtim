@@ -16,14 +16,15 @@ public class Configuration : IPluginConfiguration
     public bool SoundEnabled { get; set; } = false;
     public bool SoundEnabledWindowClosed { get; set; } = false;
     public float SoundVolume { get; set; } = 0.5f;
-    public static string OriginalSoundFile { get; } = Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName!, "assets", "alert.wav");
+    public static string OriginalSoundFile => Path.Combine(AppContext.BaseDirectory, "assets", "alert.wav");
     public string SoundFilePath { get; set; } = OriginalSoundFile;
+    public bool StartOnStartup { get; set; } = false;
 
     public Vector4 targetingColor { get; set; } = new Vector4(0.0431f, 0.9569f, 0.1804f, 1.0000f);
     public Vector4 unloadedColor { get; set; } = new Vector4(0.5f, 0.5f, 0.5f, 1f);
     public Vector4 loadedColor { get; set; } = new Vector4(1f, 1f, 1f, 1f);
 
-    public string DevVersion = "1.0.1.0";
+    public readonly string DevVersion = "1.0.1.1";
 
     public void Save()
     {
