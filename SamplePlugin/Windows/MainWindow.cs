@@ -68,9 +68,16 @@ namespace PeepingTim.Windows
             ImGui.Separator();
             ImGui.Spacing();
 
+            // Calculate the available height for the child region
+            // Subtract the height of fixed elements (title, separators, etc.)
+            // You may need to adjust the subtracted value based on your UI layout
+            float availableHeight = ImGui.GetContentRegionAvail().Y;
 
-            // Viewer List Area
-            //ImGui.BeginChild("UserList", new Vector2(0, -ImGui.GetFrameHeightWithSpacing()), true, ImGuiWindowFlags.HorizontalScrollbar);
+            // Begin Child Region for Viewer List
+            // Set the child region to take the remaining available height
+            // Remove borders and padding to maintain existing window appearance
+            ImGui.BeginChild("ViewerListChild", new Vector2(0, availableHeight), false, ImGuiWindowFlags.HorizontalScrollbar);
+
             if (viewers.Count > 0)
             {
                 // Iterate through each viewer and display with color-coding and context menu
@@ -91,11 +98,17 @@ namespace PeepingTim.Windows
                     }
 
                     var time = viewer.LastSeen.ToString("HH:mm");
-                    ImGui.Selectable(viewer.Name, false);
-                    var windowWidth = ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
+                    bool isSelected = false; // Modify if you have selection logic
+                    if (ImGui.Selectable(viewer.Name, isSelected))
+                    {
+                        // Handle selection if needed
+                    }
+
+                    // Calculate the position to place the timestamp on the right
+                    float windowWidth = ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
                     ImGui.PopStyleColor();
 
-                    // Hover and click events
+                    // Handle hover and click events
                     if (ImGui.IsItemHovered())
                     {
                         // Highlight focused viewer if applicable
@@ -113,14 +126,14 @@ namespace PeepingTim.Windows
                         }
 
                         // Left click: target the character
-                        if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                         {
                             Plugin.TargetCharacter(viewer);
                             ImGui.SetWindowFocus(null);
                         }
 
                         // Right click: open context menu
-                        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                        if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
                         {
                             ImGui.OpenPopup($"ContextMenu_{viewer.Name}");
                         }
@@ -155,6 +168,7 @@ namespace PeepingTim.Windows
                                             GameObject* xStruct = x.Struct();
                                             AgentCharaCard.Instance()->OpenCharaCard(xStruct);
                                         }
+                                        PluginLog.Debug($"Opening characard via gameobject {x}");
                                     }
                                 }
                             }
@@ -186,6 +200,8 @@ namespace PeepingTim.Windows
             {
                 ImGui.Text("No viewers yet.");
             }
+
+            ImGui.EndChild();
         }
     }
 }

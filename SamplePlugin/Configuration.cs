@@ -26,7 +26,7 @@ public class Configuration : IPluginConfiguration
     public Vector4 unloadedColor { get; set; } = new Vector4(0.5f, 0.5f, 0.5f, 1f);
     public Vector4 loadedColor { get; set; } = new Vector4(1f, 1f, 1f, 1f);
 
-    public readonly string DevVersion = "1.0.1.3";
+    public readonly string DevVersion = "1.0.1.4";
 
     public static bool LOCALCODING = false;
     public static string BasePath = LOCALCODING ? AppContext.BaseDirectory : Plugin.PluginInterface.AssemblyLocation.DirectoryName!;
