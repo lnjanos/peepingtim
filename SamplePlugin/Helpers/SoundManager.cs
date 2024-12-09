@@ -30,7 +30,7 @@ namespace PeepingTim.Helpers
         }
         public string CopySoundFileToPluginDirectory(string sourcePath)
         {
-            var pluginDirectory = Path.Combine(AppContext.BaseDirectory, "assets");
+            var pluginDirectory = Path.Combine(Configuration.BasePath, "assets");
 
             if (!Directory.Exists(pluginDirectory))
             {

@@ -1,6 +1,7 @@
 using Dalamud.Configuration;
 using Dalamud.Plugin;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Numerics;
 
@@ -16,7 +17,7 @@ public class Configuration : IPluginConfiguration
     public bool SoundEnabled { get; set; } = false;
     public bool SoundEnabledWindowClosed { get; set; } = false;
     public float SoundVolume { get; set; } = 0.5f;
-    public static string OriginalSoundFile => Path.Combine(AppContext.BaseDirectory, "assets", "alert.wav");
+    public static string OriginalSoundFile => Path.Combine(BasePath, "assets", "alert.wav");
     public string SoundFilePath { get; set; } = OriginalSoundFile;
     public bool StartOnStartup { get; set; } = false;
 
@@ -24,7 +25,10 @@ public class Configuration : IPluginConfiguration
     public Vector4 unloadedColor { get; set; } = new Vector4(0.5f, 0.5f, 0.5f, 1f);
     public Vector4 loadedColor { get; set; } = new Vector4(1f, 1f, 1f, 1f);
 
-    public readonly string DevVersion = "1.0.1.1";
+    public readonly string DevVersion = "1.0.1.2";
+
+    public static bool DEBUG = false;
+    public static string BasePath = DEBUG ? AppContext.BaseDirectory : Plugin.PluginInterface.AssemblyLocation.DirectoryName!;
 
     public void Save()
     {
