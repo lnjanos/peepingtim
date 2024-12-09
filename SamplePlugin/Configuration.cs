@@ -28,8 +28,8 @@ public class Configuration : IPluginConfiguration
 
     public readonly string DevVersion = "1.0.1.3";
 
-    public static bool DEBUG = false;
-    public static string BasePath = DEBUG ? AppContext.BaseDirectory : Plugin.PluginInterface.AssemblyLocation.DirectoryName!;
+    public static bool LOCALCODING = false;
+    public static string BasePath = LOCALCODING ? AppContext.BaseDirectory : Plugin.PluginInterface.AssemblyLocation.DirectoryName!;
 
     public void Save()
     {

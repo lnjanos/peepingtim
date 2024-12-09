@@ -155,7 +155,6 @@ namespace PeepingTim.Windows
                                             GameObject* xStruct = x.Struct();
                                             AgentCharaCard.Instance()->OpenCharaCard(xStruct);
                                         }
-                                        PluginLog.Debug($"Opening characard via gameobject {x}");
                                     }
                                 }
                             }
@@ -187,7 +186,6 @@ namespace PeepingTim.Windows
             {
                 ImGui.Text("No viewers yet.");
             }
-            ImGui.EndChild();
         }
     }
 }
