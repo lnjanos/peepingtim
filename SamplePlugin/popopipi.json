@@ -8,7 +8,7 @@
             "Peeping Tim"
         ],
         "InternalName": "PeepingTim",
-        "AssemblyVersion": "1.0.1.4",
+        "AssemblyVersion": "1.0.1.5",
         "TestingAssemblyVersion": "1.0.1.3",
         "RepoUrl": "https://github.com/lnjanos/peepingtim",
         "ApplicableVersion": "any",
@@ -16,11 +16,39 @@
         "TestingDalamudApiLevel": 11,
         "IsHide": "False",
         "IsTestingExclusive": "False",
-        "DownloadCount": 6,
-        "LastUpdate": 1733436251,
-        "DownloadLinkInstall": "https://github.com/lnjanos/peepingtim/releases/download/release/latest.zip",
-        "DownloadLinkUpdate": "https://github.com/lnjanos/peepingtim/releases/download/release/latest.zip",
+        "DownloadCount": 8,
+        "LastUpdate": 1733780713,
+        "DownloadLinkInstall": "https://github.com/lnjanos/peepingtim/releases/download/release/1.0.1.4.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/peepingtim/releases/download/release/1.0.1.4.zip",
         "DownloadLinkTesting": "https://github.com/lnjanos/peepingtim/releases/download/testing/testing.zip",
         "IconUrl": "https://raw.githubusercontent.com/lnjanos/peepingtim/refs/heads/master/SamplePlugin/assets/pipipopo.png"
+    },
+    {
+        "Author": "kcuY",
+        "Name": "CrystalSync",
+        "Punchline": "Chat via Discord.",
+        "Description": "Chat via Discord.",
+        "Tags": [
+            "Crystal Sync",
+            "CrystalSync",
+            "Chat",
+            "Discord"
+        ],
+        "InternalName": "CrystalSync",
+        "AssemblyVersion": "0.0.0.1",
+        "TestingAssemblyVersion": "0.0.0.1",
+        "RepoUrl": "https://github.com/lnjanos/crystalsync/",
+        "ApplicableVersion": "any",
+        "DalamudApiLevel": 11,
+        "TestingDalamudApiLevel": 11,
+        "IsHide": "False",
+        "IsTestingExclusive": "False",
+        "DownloadCount": 5,
+        "LastUpdate": 1733780713,
+        "DownloadLinkInstall": "https://github.com/lnjanos/crystalsync/releases/download/Release/0.0.0.1.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/crystalsync/releases/download/Release/0.0.0.1.zip",
+        "DownloadLinkTesting": "https://github.com/lnjanos/crystalsync/releases/download/Release/testing.zip",
+        "IconUrl": "https://raw.githubusercontent.com/lnjanos/crystalsync/refs/heads/main/39472a07a9ae4084bae8e752ac26a3fa%5B1%5D.jpg"
     }
+
 ]
