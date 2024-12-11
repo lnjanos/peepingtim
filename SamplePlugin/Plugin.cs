@@ -115,6 +115,7 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         ECommonsMain.Init(PluginInterface, this);
+        SoundManager.CheckSoundFile();
 
         Framework.Update += OnUpdate;
     }

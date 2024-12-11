@@ -28,21 +28,51 @@ namespace PeepingTim.Helpers
         public SoundManager(Plugin plugin) {
             this.Plugin = plugin;
         }
+
+        public void CheckSoundFile()
+        {
+            var currentPath = this.Plugin.Configuration.SoundFilePath;
+            var defaultPath = Configuration.OriginalSoundFile;
+
+            if (!File.Exists(currentPath))
+            {
+
+                if (!File.Exists(defaultPath))
+                {
+                    var assemblyDir = Path.GetDirectoryName(Plugin.PluginInterface.AssemblyLocation.DirectoryName!) ?? "";
+                    var assemblyDefaultPath = Path.Combine(assemblyDir, "assets", "alert.wav");
+
+                    if (File.Exists(assemblyDefaultPath))
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(defaultPath)!);
+                        File.Copy(assemblyDefaultPath, defaultPath, true);
+                    }
+                    else
+                    {
+                        Plugin.ChatGui.PrintError($"Default sound file not found at {assemblyDefaultPath}.");
+                        return;
+                    }
+                }
+
+                Plugin.Configuration.SoundFilePath = defaultPath;
+                Plugin.Configuration.Save();
+            }
+        }
+
         public string CopySoundFileToPluginDirectory(string sourcePath)
         {
-            var pluginDirectory = Path.Combine(Configuration.BasePath, "assets");
+            var pluginDirectory = Configuration.BasePath;
+            var assetsDirectory = Path.Combine(pluginDirectory, "assets");
 
-            if (!Directory.Exists(pluginDirectory))
+            if (!Directory.Exists(assetsDirectory))
             {
-                Directory.CreateDirectory(pluginDirectory);
+                Directory.CreateDirectory(assetsDirectory);
             }
 
-            if (!Path.Exists(sourcePath)) return "";
+            // Dann wie gehabt:
             var fileName = Path.GetFileName(sourcePath);
-            var destinationPath = Path.Combine(pluginDirectory, fileName);
-
+            var destinationPath = Path.Combine(assetsDirectory, fileName);
             File.Copy(sourcePath, destinationPath, true);
-
             return destinationPath;
         }
 
