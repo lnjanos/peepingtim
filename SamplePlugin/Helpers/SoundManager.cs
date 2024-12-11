@@ -39,7 +39,7 @@ namespace PeepingTim.Helpers
 
                 if (!File.Exists(defaultPath))
                 {
-                    var assemblyDir = Path.GetDirectoryName(Plugin.PluginInterface.AssemblyLocation.DirectoryName!) ?? "";
+                    var assemblyDir = Path.GetDirectoryName(Plugin.PluginInterface.AssemblyLocation.FullName) ?? "";
                     var assemblyDefaultPath = Path.Combine(assemblyDir, "assets", "alert.wav");
 
                     if (File.Exists(assemblyDefaultPath))
