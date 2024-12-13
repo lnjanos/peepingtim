@@ -48,7 +48,11 @@ public sealed class Plugin : IDalamudPlugin
     private const string CommandName1 = "/ptim";
     private const string CommandName2 = "/peepingtim";
     private const string CommandName3 = "/ptimconfig";
+
     private Dictionary<string, MessageWindow> messageWindows = new();
+
+    private Dictionary<string, List<ViewerInfo>> stalkerViewers = new();
+    private Dictionary<string, StalkerWindow> stalkerWindows = new();
 
     public Configuration Configuration { get; init; }
 
@@ -187,6 +191,16 @@ public sealed class Plugin : IDalamudPlugin
         ChatGui.PrintError(message);
     }
 
+    public void OpenStalkWindow(ViewerInfo viewer)
+    {
+        string name = $"{viewer.Name}@{viewer.World}";
+        if (stalkerViewers.ContainsKey(name)) return;
+
+        var stalkerWindow = new StalkerWindow(this, viewer);
+        WindowSystem.AddWindow(stalkerWindow);
+        stalkerWindows[name] = stalkerWindow;
+    }
+
     private void OnUpdate(IFramework framework)
     {
         long currentTick = DateTimeOffset.Now.ToUnixTimeMilliseconds();
@@ -203,7 +217,15 @@ public sealed class Plugin : IDalamudPlugin
             var loadedPcs = FindLoadedViewersInObjectTable(viewers);
             foreach (var viewer in viewers)
             {
-               viewer.isLoaded = loadedPcs.Contains(viewer);
+                if (!loadedPcs.Keys.Contains(viewer))
+                {
+                    viewer.isLoaded = false;
+                } else
+                {
+                    viewer.isLoaded = true;
+                    viewer.lastKnownGameObjectId = loadedPcs[viewer];
+                }
+               
             }
         }
 
@@ -211,6 +233,12 @@ public sealed class Plugin : IDalamudPlugin
             return;
 
         ulong localPlayerId = ClientState.LocalPlayer.GameObjectId;
+        List<ulong> stalkedIds = new List<ulong>();
+        
+        foreach( var v in stalkerViewers )
+        {
+            if (v.Key)
+        }
 
         var currentlyLookingAtMe = new HashSet<string>();
 
@@ -235,7 +263,8 @@ public sealed class Plugin : IDalamudPlugin
                             isFocused = false,
                             soundPlayed = false,
                             FirstSeen = DateTime.Now,
-                            LastSeen = DateTime.Now
+                            LastSeen = DateTime.Now,
+                            lastKnownGameObjectId = character.GameObjectId,
                         };
                         viewers[key] = viewerInfo;
 
@@ -281,7 +310,7 @@ public sealed class Plugin : IDalamudPlugin
             .ToList();
     }
 
-public string GetWorldName(uint rowId)
+    public string GetWorldName(uint rowId)
     {
         if (worldNames.TryGetValue(rowId, out var worldName))
         {
@@ -351,27 +380,27 @@ public string GetWorldName(uint rowId)
         return null;
     }
 
-    private List<ViewerInfo> FindLoadedViewersInObjectTable(List<ViewerInfo> viewerList)
+    private Dictionary<ViewerInfo, ulong> FindLoadedViewersInObjectTable(List<ViewerInfo> viewerList)
     {
-        var loadedViewers = new List<ViewerInfo>();
+        var loadedViewers = new Dictionary<ViewerInfo, ulong>();
 
-        var objectTableKeys = new HashSet<string>();
+        var objectTableKeys = new Dictionary<string, ulong>();
         foreach (var obj in ObjectTable)
         {
             if (obj is IPlayerCharacter pc)
             {
                 string worldName = GetWorldName(pc.HomeWorld.RowId);
                 string key = $"{pc.Name.TextValue}@{worldName}";
-                objectTableKeys.Add(key);
+                objectTableKeys.Add(key, pc.GameObjectId);
             }
         }
 
         foreach (var viewer in viewerList)
         {
             string key = $"{viewer.Name}@{viewer.World}";
-            if (objectTableKeys.Contains(key))
+            if (objectTableKeys.Keys.Contains(key))
             {
-                loadedViewers.Add(viewer);
+                loadedViewers.Add(viewer, objectTableKeys[key]);
             }
         }
 
@@ -451,5 +480,6 @@ public string GetWorldName(uint rowId)
         public bool soundPlayed { get; set; }
         public DateTime FirstSeen { get; set; }
         public DateTime LastSeen { get; set; }
+        public ulong lastKnownGameObjectId { get; set; }
     }
 }

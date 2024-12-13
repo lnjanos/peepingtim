@@ -22,12 +22,13 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace PeepingTim.Windows
 {
-    public class MainWindow : Window, IDisposable
+    public class StalkerWindow : Window, IDisposable
     {
         private Plugin Plugin;
+        private Plugin.ViewerInfo user;
 
-        public MainWindow(Plugin plugin) : base(
-            "Peeping Tim",
+        public StalkerWindow(Plugin plugin, Plugin.ViewerInfo user) : base(
+            user.Name,
             ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
         {
             this.SizeConstraints = new WindowSizeConstraints
@@ -40,6 +41,7 @@ namespace PeepingTim.Windows
             SizeCondition = ImGuiCond.FirstUseEver;
 
             this.Plugin = plugin;
+            this.user = user;
         }
 
         public void Dispose()
@@ -172,10 +174,6 @@ namespace PeepingTim.Windows
                                     }
                                 }
                             }
-                            if (ImGui.MenuItem("Stalk"))
-                            {
-                                Plugin.OpenStalkWindow(viewer);
-                            }
                         }
                         ImGui.EndPopup();
                     }
@@ -207,5 +205,7 @@ namespace PeepingTim.Windows
 
             ImGui.EndChild();
         }
+
+
     }
 }
