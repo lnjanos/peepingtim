@@ -25,315 +25,522 @@ using ECommons.Automation;
 using ECommons.GameFunctions;
 using NAudio.Wave;
 using System.Threading;
-using System.Linq;
 using ECommons.Logging;
 using System.IO;
 using FFXIVClientStructs.FFXIV.Client.Sound;
 using ECommons.EzEventManager;
 
-namespace PeepingTim;
-
-public sealed class Plugin : IDalamudPlugin
+namespace PeepingTim
 {
-    public string Name => "PeepingTim";
-    [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
-    [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
-    [PluginService] internal static IClientState ClientState { get; private set; } = null!;
-    [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
-    [PluginService] internal static IFramework Framework { get; private set; } = null!;
-    [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
-    [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
-    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
-    
-    private const string CommandName1 = "/ptim";
-    private const string CommandName2 = "/peepingtim";
-    private const string CommandName3 = "/ptimconfig";
-
-    private Dictionary<string, MessageWindow> messageWindows = new();
-
-    private Dictionary<string, List<ViewerInfo>> stalkerViewers = new();
-    private Dictionary<string, StalkerWindow> stalkerWindows = new();
-
-    public Configuration Configuration { get; init; }
-
-    public readonly WindowSystem WindowSystem = new("Peeping Tim");
-    private MainWindow MainWindow { get; init; }
-    private ConfigWindow ConfigWindow { get; init; }
-    private Helpers.SoundManager SoundManager { get; init; }
-
-    private Dictionary<string, ViewerInfo> viewers = new();
-
-    private readonly Dictionary<uint, string> worldNames = new();
-
-    private long lastUpdateTick = 0;
-    private const int UpdateIntervalMs = 100;
-
-    private long lastLoadingTick = 0;
-    private const int LoadingIntervalMs = 1500;
-
-    private bool firstDrawn = false;
-
-    public Plugin()
+    public sealed class Plugin : IDalamudPlugin
     {
-        Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        public string Name => "PeepingTim";
 
-        MainWindow = new MainWindow(this);
-        ConfigWindow = new ConfigWindow(this);
-        SoundManager = new Helpers.SoundManager(this);
+        [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+        [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
+        [PluginService] internal static IClientState ClientState { get; private set; } = null!;
+        [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+        [PluginService] internal static IFramework Framework { get; private set; } = null!;
+        [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
+        [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
+        [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
 
-        WindowSystem.AddWindow(MainWindow);
-        WindowSystem.AddWindow(ConfigWindow);
+        private const string CommandName1 = "/ptim";
+        private const string CommandName2 = "/peepingtim";
+        private const string CommandName3 = "/ptimconfig";
 
-        CommandManager.AddHandler(CommandName1, new CommandInfo(OnCommand)
+        // Statt ViewerInfo als Key => String als Key ("Name@World")
+        // "Normale" Viewer
+        private Dictionary<string, ViewerInfo> viewers = new();
+
+        // Stalker: Key = "Name@World" des Stalkers
+        // Value = Dictionary mit Key="ViewerName@World" und Value=ViewerInfo
+        private Dictionary<string, Dictionary<string, ViewerInfo>> stalkerViewers = new();
+
+        // Stalker-Fenster pro Stalker
+        private Dictionary<string, StalkerWindow> stalkerWindows = new();
+
+        // speichert, auf wen der Stalker gerade schaut: Key = "StalkerName@World", Value = "TargetName@World" oder null
+        private Dictionary<string, ViewerInfo?> stalkerLooksAt = new();
+
+
+        // Fenster für Chat etc.
+        private Dictionary<string, MessageWindow> messageWindows = new();
+
+        public Configuration Configuration { get; init; }
+
+        public readonly WindowSystem WindowSystem = new("Peeping Tim");
+        private MainWindow MainWindow { get; init; }
+        private ConfigWindow ConfigWindow { get; init; }
+        private Helpers.SoundManager SoundManager { get; init; }
+
+        private readonly Dictionary<uint, string> worldNames = new();
+
+        private long lastUpdateTick = 0;
+        private const int UpdateIntervalMs = 100;
+
+        private long lastLoadingTick = 0;
+        private const int LoadingIntervalMs = 1500;
+
+        private bool firstDrawn = false;
+
+        public Plugin()
         {
-            HelpMessage = "Opens P-Tim Window."
-        });
+            Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
-        CommandManager.AddHandler(CommandName2, new CommandInfo(OnCommand)
-        {
-            HelpMessage = "Opens P-Tim Window."
-        });
+            MainWindow = new MainWindow(this);
+            ConfigWindow = new ConfigWindow(this);
+            SoundManager = new Helpers.SoundManager(this);
 
-        CommandManager.AddHandler(CommandName3, new CommandInfo(OnConfig)
-        {
-            HelpMessage = "Opens P-Tim Config."
-        });
+            WindowSystem.AddWindow(MainWindow);
+            WindowSystem.AddWindow(ConfigWindow);
 
-        PluginInterface.UiBuilder.Draw += DrawUI;
-        PluginInterface.UiBuilder.OpenConfigUi += DrawConfig;
-        PluginInterface.UiBuilder.OpenMainUi += DrawMain;
-
-        if (Configuration.StartOnStartup)
-        {
-            ClientState.Login += OnLogin;
-            ClientState.TerritoryChanged += OnTerritoryChanged;
-        }
-
-        var worldSheet = DataManager.GetExcelSheet<World>();
-        if (worldSheet != null)
-        {
-            foreach (var world in worldSheet)
+            CommandManager.AddHandler(CommandName1, new CommandInfo(OnCommand)
             {
-                worldNames[world.RowId] = world.Name.ExtractText();
+                HelpMessage = "Opens P-Tim Window."
+            });
+
+            CommandManager.AddHandler(CommandName2, new CommandInfo(OnCommand)
+            {
+                HelpMessage = "Opens P-Tim Window."
+            });
+
+            CommandManager.AddHandler(CommandName3, new CommandInfo(OnConfig)
+            {
+                HelpMessage = "Opens P-Tim Config."
+            });
+
+            PluginInterface.UiBuilder.Draw += DrawUI;
+            PluginInterface.UiBuilder.OpenConfigUi += DrawConfig;
+            PluginInterface.UiBuilder.OpenMainUi += DrawMain;
+
+            if (Configuration.StartOnStartup)
+            {
+                ClientState.Login += OnLogin;
+                ClientState.TerritoryChanged += OnTerritoryChanged;
             }
+
+            var worldSheet = DataManager.GetExcelSheet<World>();
+            if (worldSheet != null)
+            {
+                foreach (var world in worldSheet)
+                {
+                    worldNames[world.RowId] = world.Name.ExtractText();
+                }
+            }
+
+            ECommonsMain.Init(PluginInterface, this);
+            SoundManager.CheckSoundFile();
+
+            Framework.Update += OnUpdate;
         }
 
-        ECommonsMain.Init(PluginInterface, this);
-        SoundManager.CheckSoundFile();
-
-        Framework.Update += OnUpdate;
-    }
-
-    public void Dispose()
-    {
-        WindowSystem.RemoveAllWindows();
-
-        MainWindow.Dispose();
-        ConfigWindow.Dispose();
-
-        CommandManager.RemoveHandler(CommandName1);
-        CommandManager.RemoveHandler(CommandName2);
-        CommandManager.RemoveHandler(CommandName3);
-
-        PluginInterface.UiBuilder.Draw -= DrawUI;
-        PluginInterface.UiBuilder.OpenConfigUi -= DrawConfig;
-        PluginInterface.UiBuilder.OpenMainUi -= DrawMain;
-
-        Framework.Update -= OnUpdate;
-    }
-
-    private void OnCommand(string command, string args)
-    {
-        MainWindow.IsOpen = true;
-    }
-
-    private void OnConfig(string command, string args)
-    {
-        ConfigWindow.IsOpen = true;
-    }
-
-    private void OnLogin()
-    {
-        TryOpenMainWindow();
-    }
-
-    private void OnTerritoryChanged(ushort territoryId)
-    {
-        TryOpenMainWindow();
-    }
-
-    private void TryOpenMainWindow()
-    {
-        if (ClientState.IsLoggedIn && ClientState.LocalPlayer != null && !firstDrawn)
+        public void Dispose()
         {
-            ClientState.Login -= OnLogin;
-            ClientState.TerritoryChanged -= OnTerritoryChanged;
-            firstDrawn = true;
+            WindowSystem.RemoveAllWindows();
+
+            MainWindow.Dispose();
+            ConfigWindow.Dispose();
+
+            CommandManager.RemoveHandler(CommandName1);
+            CommandManager.RemoveHandler(CommandName2);
+            CommandManager.RemoveHandler(CommandName3);
+
+            PluginInterface.UiBuilder.Draw -= DrawUI;
+            PluginInterface.UiBuilder.OpenConfigUi -= DrawConfig;
+            PluginInterface.UiBuilder.OpenMainUi -= DrawMain;
+
+            Framework.Update -= OnUpdate;
+        }
+
+        private void OnCommand(string command, string args)
+        {
             MainWindow.IsOpen = true;
         }
-    }
 
-
-    private void DrawUI() => WindowSystem.Draw();
-    private void DrawConfig() => OnConfig("/ptimconfig", "");
-    private void DrawMain() => OnCommand("/ptim", "");
-
-    public void PrintCommands()
-    {
-        foreach (var command in CommandManager.Commands)
+        private void OnConfig(string command, string args)
         {
-            ChatGui.Print($"{command.Key}: {command.Value.HelpMessage}");
+            ConfigWindow.IsOpen = true;
         }
-    }
 
-    public void SendError(string message)
-    {
-        ChatGui.PrintError(message);
-    }
-
-    public void OpenStalkWindow(ViewerInfo viewer)
-    {
-        string name = $"{viewer.Name}@{viewer.World}";
-        if (stalkerViewers.ContainsKey(name)) return;
-
-        var stalkerWindow = new StalkerWindow(this, viewer);
-        WindowSystem.AddWindow(stalkerWindow);
-        stalkerWindows[name] = stalkerWindow;
-    }
-
-    private void OnUpdate(IFramework framework)
-    {
-        long currentTick = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-        if (currentTick - lastUpdateTick < UpdateIntervalMs)
+        private void OnLogin()
         {
-            return;
+            TryOpenMainWindow();
         }
-        lastUpdateTick = currentTick;
 
-        if (currentTick - lastLoadingTick >= LoadingIntervalMs)
+        private void OnTerritoryChanged(ushort territoryId)
         {
-            lastLoadingTick = currentTick;
-            var viewers = GetViewers();
-            var loadedPcs = FindLoadedViewersInObjectTable(viewers);
-            foreach (var viewer in viewers)
+            TryOpenMainWindow();
+        }
+
+        private void TryOpenMainWindow()
+        {
+            if (ClientState.IsLoggedIn && ClientState.LocalPlayer != null && !firstDrawn)
             {
-                if (!loadedPcs.Keys.Contains(viewer))
-                {
-                    viewer.isLoaded = false;
-                } else
-                {
-                    viewer.isLoaded = true;
-                    viewer.lastKnownGameObjectId = loadedPcs[viewer];
-                }
-               
+                ClientState.Login -= OnLogin;
+                ClientState.TerritoryChanged -= OnTerritoryChanged;
+                firstDrawn = true;
+                MainWindow.IsOpen = true;
             }
         }
 
-        if (ClientState.LocalPlayer == null)
-            return;
+        private void DrawUI() => WindowSystem.Draw();
+        private void DrawConfig() => OnConfig("/ptimconfig", "");
+        private void DrawMain() => OnCommand("/ptim", "");
 
-        ulong localPlayerId = ClientState.LocalPlayer.GameObjectId;
-        List<ulong> stalkedIds = new List<ulong>();
-        
-        foreach( var v in stalkerViewers )
+        public void PrintCommands()
         {
-            if (v.Key)
+            foreach (var command in CommandManager.Commands)
+            {
+                ChatGui.Print($"{command.Key}: {command.Value.HelpMessage}");
+            }
         }
 
-        var currentlyLookingAtMe = new HashSet<string>();
-
-        foreach (var obj in ObjectTable)
+        public void SendError(string message)
         {
-            if (obj is IPlayerCharacter character && character.GameObjectId != localPlayerId)
+            ChatGui.PrintError(message);
+        }
+
+        #region Stalker-Management
+
+        public void OpenStalkWindow(ViewerInfo viewer)
+        {
+            // Der Key des Stalkers
+            string stalkerKey = GetViewerKey(viewer);
+
+            // Schon vorhanden?
+            if (stalkerViewers.ContainsKey(stalkerKey))
+                return;
+
+            // Neues Dictionary für alle Viewer, die diesen Stalker anschauen
+            stalkerViewers[stalkerKey] = new Dictionary<string, ViewerInfo>();
+            stalkerLooksAt[stalkerKey] = null;
+
+            // Eigenes Window
+            var stalkerWindow = new StalkerWindow(this, viewer);
+            WindowSystem.AddWindow(stalkerWindow);
+            stalkerWindows[stalkerKey] = stalkerWindow;
+        }
+
+        public void CloseStalkerWindow(ViewerInfo v)
+        {
+            string stalkerKey = GetViewerKey(v);
+
+            if (stalkerWindows.TryGetValue(stalkerKey, out var win))
             {
-                if (character.TargetObjectId == localPlayerId)
+                win.IsOpen = false;
+                WindowSystem.RemoveWindow(win);
+                stalkerWindows.Remove(stalkerKey);
+            }
+
+            if (stalkerLooksAt.ContainsKey(stalkerKey))
+                stalkerLooksAt.Remove(stalkerKey);
+
+            if (stalkerViewers.ContainsKey(stalkerKey))
+                stalkerViewers.Remove(stalkerKey);
+        }
+
+        public List<ViewerInfo> GetStalkerViewers(ViewerInfo user)
+        {
+            var result = new List<ViewerInfo>();
+            string stalkerKey = GetViewerKey(user);
+
+            if (!stalkerViewers.ContainsKey(stalkerKey))
+                return result;
+
+            foreach (var v in stalkerViewers[stalkerKey].Values)
+            {
+                result.Add(v);
+            }
+
+            return result
+                .OrderByDescending(v => v.IsActive)
+                .ThenByDescending(v => v.LastSeen)
+                .Take(15)
+                .ToList();
+        }
+
+        public ViewerInfo? GetStalkerTarget(ViewerInfo stalker)
+        {
+            // Gibt zurück, wen der Stalker gerade anschaut (sofern vorhanden)
+            string stalkerKey = GetViewerKey(stalker);
+            if (stalkerLooksAt.TryGetValue(stalkerKey, out var targetKey))
+            {
+                return targetKey;
+            }
+            return null;
+        }
+
+        #endregion
+
+        #region Update-Loop
+
+        private void OnUpdate(IFramework framework)
+        {
+            long currentTick = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            if (currentTick - lastUpdateTick < UpdateIntervalMs)
+                return;
+            lastUpdateTick = currentTick;
+
+            // AllViewer-Loading Check (alle 1,5 Sek)
+            if (currentTick - lastLoadingTick >= LoadingIntervalMs)
+            {
+                lastLoadingTick = currentTick;
+                var allKnownViewers = GetAllViewers();
+                var loadedPcs = FindLoadedViewersInObjectTable(allKnownViewers);
+                foreach (var viewer in allKnownViewers)
                 {
-                    string key = GetPlayerKey(character);
-
-                    currentlyLookingAtMe.Add(key);
-
-                    if (!viewers.TryGetValue(key, out var viewerInfo))
+                    string key = GetViewerKey(viewer);
+                    if (!loadedPcs.ContainsKey(key))
                     {
-                        viewerInfo = new ViewerInfo
-                        {
-                            Name = character.Name.TextValue,
-                            World = GetWorldName(character.HomeWorld.RowId),
-                            IsActive = true,
-                            isLoaded = true,
-                            isFocused = false,
-                            soundPlayed = false,
-                            FirstSeen = DateTime.Now,
-                            LastSeen = DateTime.Now,
-                            lastKnownGameObjectId = character.GameObjectId,
-                        };
-                        viewers[key] = viewerInfo;
-
+                        viewer.isLoaded = false;
                     }
                     else
                     {
-                        viewerInfo.IsActive = true;
-                        viewerInfo.LastSeen = DateTime.Now;
+                        viewer.isLoaded = true;
+                        viewer.lastKnownGameObjectId = loadedPcs[key];
                     }
-                    if (Configuration.SoundEnabled && !viewerInfo.soundPlayed)
+                }
+            }
+
+            if (ClientState.LocalPlayer == null) return;
+            ulong localPlayerId = ClientState.LocalPlayer.GameObjectId;
+
+            // Stalker, die wir aktuell tracken
+            // Key: GameObjectId, Value: "StalkerKey (Name@World)"
+            var stalkedIds = new Dictionary<ulong, string>();
+
+            // Schauen, ob jeder Stalker noch geladen ist
+            var toClose = new List<string>();
+            foreach (var kv in stalkerViewers)
+            {
+                // kv.Key = "Name@World" vom Stalker
+                // Wir suchen in "viewers" den Eintrag – oder haben den Stalker selbst
+                if (!viewers.TryGetValue(kv.Key, out var stInfo) || !stInfo.isLoaded)
+                {
+                    // Schließen, wenn er nicht geladen oder unbekannt ist
+                    toClose.Add(kv.Key);
+                }
+                else
+                {
+                    // Stalker existiert und ist loaded
+                    stalkedIds[stInfo.lastKnownGameObjectId] = kv.Key;
+                }
+            }
+
+            // Falls Stalker entladen, Fenster schließen
+            foreach (var sc in toClose)
+            {
+                var fallback = new ViewerInfo { Name = sc, World = "(???)" };
+                CloseStalkerWindow(fallback);
+            }
+
+            // Wer guckt mich an? 
+            var currentlyLookingAtMe = new HashSet<string>();
+
+            // Wer guckt den Stalker an?
+            var currentlyLookingAtStalker = new Dictionary<string, HashSet<string>>();
+            // vorinitialisieren
+            foreach (var stKey in stalkerViewers.Keys)
+            {
+                currentlyLookingAtStalker[stKey] = new HashSet<string>();
+            }
+
+            // Durch alle Objekte in der ObjectTable
+            foreach (var obj in ObjectTable)
+            {
+                if (obj is IPlayerCharacter character)
+                {
+                    // 1) Schauen, ob mich dieser Character (LocalPlayer) anvisiert
+                    if (character.TargetObjectId == localPlayerId && character.GameObjectId != localPlayerId)
                     {
-                        try
+                        string charKey = GetPlayerKey(character);
+                        currentlyLookingAtMe.Add(charKey);
+
+                        if (!viewers.TryGetValue(charKey, out var vInfo))
                         {
-                            SoundManager.PlaySound();
-                            viewerInfo.soundPlayed = true;
+                            vInfo = new ViewerInfo
+                            {
+                                Name = character.Name.TextValue,
+                                World = GetWorldName(character.HomeWorld.RowId),
+                                IsActive = true,
+                                isLoaded = true,
+                                isFocused = false,
+                                soundPlayed = false,
+                                FirstSeen = DateTime.Now,
+                                LastSeen = DateTime.Now,
+                                lastKnownGameObjectId = character.GameObjectId,
+                            };
+                            viewers[charKey] = vInfo;
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            ChatGui.PrintError($"Error Sound 3: {ex.Message}");
+                            vInfo.IsActive = true;
+                            vInfo.LastSeen = DateTime.Now;
+                        }
+
+                        // Sound abspielen
+                        if (Configuration.SoundEnabled && !vInfo.soundPlayed)
+                        {
+                            try
+                            {
+                                SoundManager.PlaySound();
+                                vInfo.soundPlayed = true;
+                            }
+                            catch (Exception ex)
+                            {
+                                ChatGui.PrintError($"Error Sound 3: {ex.Message}");
+                            }
                         }
                     }
 
+                    // 2) Schauen, ob dieser Char jemanden anvisiert, der ein Stalker ist
+                    if (stalkedIds.TryGetValue(character.TargetObjectId, out var stalkerKey))
+                    {
+                        // d.h. character guckt einen Stalker an
+                        string charKey = GetPlayerKey(character);
+                        currentlyLookingAtStalker[stalkerKey].Add(charKey);
+
+                        if (!stalkerViewers[stalkerKey].TryGetValue(charKey, out var sViewerInfo))
+                        {
+                            sViewerInfo = new ViewerInfo
+                            {
+                                Name = character.Name.TextValue,
+                                World = GetWorldName(character.HomeWorld.RowId),
+                                IsActive = true,
+                                isLoaded = true,
+                                isFocused = false,
+                                soundPlayed = false,
+                                FirstSeen = DateTime.Now,
+                                LastSeen = DateTime.Now,
+                                lastKnownGameObjectId = character.GameObjectId,
+                            };
+                            stalkerViewers[stalkerKey][charKey] = sViewerInfo;
+                        }
+                        else
+                        {
+                            sViewerInfo.IsActive = true;
+                            sViewerInfo.LastSeen = DateTime.Now;
+                        }
+                    }
+
+                    // 3) Falls der Character selbst ein Stalker ist, schauen wir, wen er anvisiert
+                    if (stalkedIds.TryGetValue(character.GameObjectId, out var stKey2))
+                    {
+                        // stKey2 = "StalkerName@World"
+                        if (character.TargetObject == null)
+                        {
+                            stalkerLooksAt[stKey2] = null;
+                        }
+                        else
+                        {
+                            // Er guckt irgendwen an
+                            // wir müssen per ObjectTable dessen Key herausfinden
+                            var possibleTarget = ObjectTable.SearchById(character.TargetObjectId) as IPlayerCharacter;
+                            if (possibleTarget == null)
+                            {
+                                // Falls gar kein PlayerCharacter => leer
+                                stalkerLooksAt[stKey2] = null;
+                            }
+                            else
+                            {                            
+
+                                var v = new ViewerInfo
+                                {
+                                    Name = possibleTarget.Name.TextValue,
+                                    World = GetWorldName(possibleTarget.HomeWorld.RowId),
+                                    IsActive = true,
+                                    isLoaded = true,
+                                    isFocused = false,
+                                    soundPlayed = false,
+                                    FirstSeen = DateTime.Now,
+                                    LastSeen = DateTime.Now,
+                                    lastKnownGameObjectId = possibleTarget.GameObjectId,
+                                };
+                                stalkerLooksAt[stKey2] = v;
+
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4) Wer mich NICHT mehr anvisiert => isActive = false
+            foreach (var vInfo in viewers.Values)
+            {
+                string vKey = GetViewerKey(vInfo);
+                if (!currentlyLookingAtMe.Contains(vKey))
+                {
+                    vInfo.IsActive = false;
+                    vInfo.soundPlayed = false;
+                }
+            }
+
+            // 5) Wer den Stalker NICHT mehr anvisiert => isActive = false
+            foreach (var kv in stalkerViewers)
+            {
+                // kv.Key = "StalkerKey"
+                foreach (var sV in kv.Value)
+                {
+                    // sV.Key = "ViewerKey", sV.Value = ViewerInfo
+                    if (!currentlyLookingAtStalker[kv.Key].Contains(sV.Key))
+                    {
+                        sV.Value.IsActive = false;
+                    }
                 }
             }
         }
 
-        foreach (var viewerInfo in viewers.Values)
+        #endregion
+
+        #region Getter-Funktionen
+
+        // Alle Viewer (normale + die in den Stalker-Dictionaries) + ggf. "stalkerLooksAt"
+        public HashSet<ViewerInfo> GetAllViewers()
         {
-            if (!currentlyLookingAtMe.Contains(GetViewerKey(viewerInfo)))
+            var set = new HashSet<ViewerInfo>();
+
+            // "normale" Viewer
+            foreach (var v in viewers.Values)
+                set.Add(v);
+
+            // Alle Viewer aus den Stalker-View Dictionaries
+            foreach (var stDict in stalkerViewers.Values)
             {
-                viewerInfo.IsActive = false;
-                viewerInfo.soundPlayed = false;
+                foreach (var v in stDict.Values)
+                    set.Add(v);
             }
+
+            // Jeder Stalker guckt ggf. jmd. an
+            foreach (var targKey in stalkerLooksAt.Values)
+            {
+                if (targKey != null)
+                {
+                    set.Add(targKey);
+                }
+            }
+
+            return set;
         }
-    }
 
-    public List<ViewerInfo> GetViewers()
-    {
-        return viewers.Values
-            .OrderByDescending(v => v.IsActive)
-            .ThenByDescending(v => v.LastSeen)
-            .Take(15)
-            .ToList();
-    }
-
-    public string GetWorldName(uint rowId)
-    {
-        if (worldNames.TryGetValue(rowId, out var worldName))
+        // Gibt nur die 15 „aktuellsten“ „normalen“ Viewer zurück
+        public List<ViewerInfo> GetViewers()
         {
-            return worldName;
+            return viewers.Values
+                .OrderByDescending(v => v.IsActive)
+                .ThenByDescending(v => v.LastSeen)
+                .Take(15)
+                .ToList();
         }
-        return "Unknown";
-    }
 
-    private string GetPlayerKey(IPlayerCharacter character)
-    {
-        string worldName = GetWorldName(character.HomeWorld.RowId);
-        return $"{character.Name.TextValue}@{worldName}";
-    }
+        #endregion
 
-    private string GetViewerKey(ViewerInfo viewer)
-    {
-        return $"{viewer.Name}@{viewer.World}";
-    }
+        #region Char-Funktionen
 
-    public void TargetCharacter(ViewerInfo viewer)
-    {
-        if (viewer != null)
+        public void TargetCharacter(ViewerInfo viewer)
         {
+            if (viewer == null) return;
+
             var character = FindCharacterInObjectTable(viewer);
             if (character != null)
             {
@@ -344,142 +551,178 @@ public sealed class Plugin : IDalamudPlugin
                 ChatGui.PrintError($"Character {viewer.Name} can't be targeted.");
             }
         }
-    }
 
-    public void HighlightCharacter(ViewerInfo viewer)
-    {
-        if (viewer != null)
+        public void HighlightCharacter(ViewerInfo viewer)
         {
+            if (viewer == null) return;
+
             var character = FindCharacterInObjectTable(viewer);
             if (character != null)
             {
                 if (viewer.isFocused)
                 {
                     TargetManager.FocusTarget = null;
-                } else
+                }
+                else
                 {
                     TargetManager.FocusTarget = character;
                 }
                 viewer.isFocused = !viewer.isFocused;
             }
         }
-    }
 
-    public IPlayerCharacter? FindCharacterInObjectTable(ViewerInfo viewer)
-    {
-        foreach (var obj in ObjectTable)
+        public IPlayerCharacter? FindCharacterInObjectTable(ViewerInfo viewer)
         {
-            if (obj is IPlayerCharacter pc)
+            foreach (var obj in ObjectTable)
             {
-                if (pc.Name.TextValue == viewer.Name && GetWorldName(pc.HomeWorld.RowId) == viewer.World)
+                if (obj is IPlayerCharacter pc)
                 {
-                    return pc;
+                    if (pc.Name.TextValue == viewer.Name && GetWorldName(pc.HomeWorld.RowId) == viewer.World)
+                    {
+                        return pc;
+                    }
                 }
             }
+            return null;
         }
-        return null;
-    }
 
-    private Dictionary<ViewerInfo, ulong> FindLoadedViewersInObjectTable(List<ViewerInfo> viewerList)
-    {
-        var loadedViewers = new Dictionary<ViewerInfo, ulong>();
-
-        var objectTableKeys = new Dictionary<string, ulong>();
-        foreach (var obj in ObjectTable)
+        private Dictionary<string, ulong> FindLoadedViewersInObjectTable(HashSet<ViewerInfo> viewerList)
         {
-            if (obj is IPlayerCharacter pc)
+            var loadedViewers = new Dictionary<string, ulong>();
+            var objectTableKeys = new Dictionary<string, ulong>();
+
+            // Alle Spieler im Objekt-Tisch "einscannen"
+            foreach (var obj in ObjectTable)
             {
-                string worldName = GetWorldName(pc.HomeWorld.RowId);
-                string key = $"{pc.Name.TextValue}@{worldName}";
-                objectTableKeys.Add(key, pc.GameObjectId);
+                if (obj is IPlayerCharacter pc)
+                {
+                    string key = GetPlayerKey(pc);
+                    objectTableKeys[key] = pc.GameObjectId;
+                }
+            }
+
+            // Für alle bekannten Viewer checken, ob sie in objectTableKeys stecken
+            foreach (var viewer in viewerList)
+            {
+                string vKey = GetViewerKey(viewer);
+                if (objectTableKeys.ContainsKey(vKey))
+                {
+                    loadedViewers[vKey] = objectTableKeys[vKey];
+                }
+            }
+
+            return loadedViewers;
+        }
+
+        #endregion
+
+        #region Chat etc.
+
+        public void SendChatCommand(string command, ViewerInfo viewer)
+        {
+            if (viewer != null)
+            {
+                string name = $"{viewer.Name}@{viewer.World}";
+                string fullCommand = $"/{command} {name}";
+                CommandManager.ProcessCommand(fullCommand);
             }
         }
 
-        foreach (var viewer in viewerList)
+        public void OpenChatWith(ViewerInfo viewer, string message)
         {
-            string key = $"{viewer.Name}@{viewer.World}";
-            if (objectTableKeys.Keys.Contains(key))
+            if (viewer != null)
             {
-                loadedViewers.Add(viewer, objectTableKeys[key]);
+                string command = $"/tell {viewer.Name}@{viewer.World} {message}";
+                Chat.Instance.SendMessage(command);
             }
         }
 
-        return loadedViewers;
-    }
-
-
-    public void SendChatCommand(string command, ViewerInfo viewer)
-    {
-        if (viewer != null)
+        public void CopyPlayerName(ViewerInfo viewer)
         {
-            string name = $"{viewer.Name}@{viewer.World}";
-            string fullCommand = $"/{command} {name}";
-            CommandManager.ProcessCommand(fullCommand);
+            if (viewer != null)
+            {
+                string name = $"{viewer.Name}@{viewer.World}";
+                ImGui.SetClipboardText(name);
+                ChatGui.Print($"Kopiert {name} in die Zwischenablage.");
+            }
         }
-    }
 
-    public void OpenChatWith(ViewerInfo viewer, string message)
-    {
-        if (viewer != null)
+        public void OpenMessageWindow(ViewerInfo viewer)
         {
-            string command = $"/tell {viewer.Name}@{viewer.World} {message}";
-            Chat.Instance.SendMessage(command);
-        }
-    }
+            string key = GetViewerKey(viewer);
 
-    public void CopyPlayerName(ViewerInfo viewer)
-    {
-        if (viewer != null)
+            if (!messageWindows.ContainsKey(key))
+            {
+                var messageWindow = new MessageWindow(this, viewer);
+                WindowSystem.AddWindow(messageWindow);
+                messageWindows[key] = messageWindow;
+            }
+            else
+            {
+                messageWindows[key].IsOpen = true;
+            }
+        }
+
+        public void CloseMessageWindow(ViewerInfo viewer)
         {
-            string name = $"{viewer.Name}@{viewer.World}";
-            ImGui.SetClipboardText(name);
-            ChatGui.Print($"Kopiert {name} in die Zwischenablage.");
+            string key = GetViewerKey(viewer);
+            if (messageWindows.ContainsKey(key))
+            {
+                var window = messageWindows[key];
+                WindowSystem.RemoveWindow(window);
+                window.Dispose();
+                messageWindows.Remove(key);
+            }
         }
-    }
 
-    public void OpenMessageWindow(ViewerInfo viewer)
-    {
-        string key = $"{viewer.Name}@{viewer.World}";
-
-        if (!messageWindows.ContainsKey(key))
+        public bool IsMainWindowOpen()
         {
-            var messageWindow = new MessageWindow(this, viewer);
-            WindowSystem.AddWindow(messageWindow);
-            messageWindows[key] = messageWindow;
+            return MainWindow.IsOpen;
         }
-        else
+
+        #endregion
+
+        #region Helper
+
+        public string GetWorldName(uint rowId)
         {
-            messageWindows[key].IsOpen = true;
+            if (worldNames.TryGetValue(rowId, out var worldName))
+            {
+                return worldName;
+            }
+            return "Unknown";
         }
-    }
 
-    public bool IsMainWindowOpen()
-    {
-        return MainWindow.IsOpen;
-    }
-
-    public void CloseMessageWindow(ViewerInfo viewer)
-    {
-        string key = $"{viewer.Name}@{viewer.World}";
-        if (messageWindows.ContainsKey(key))
+        // Key für Dictionary = "Name@World"
+        public string GetViewerKey(ViewerInfo viewer)
         {
-            var window = messageWindows[key];
-            WindowSystem.RemoveWindow(window);
-            window.Dispose();
-            messageWindows.Remove(key);
+            return $"{viewer.Name}@{viewer.World}";
         }
-    }
 
-    public class ViewerInfo
-    {
-        public string Name { get; set; } = string.Empty;
-        public string World { get; set; } = string.Empty;
-        public bool IsActive { get; set; }
-        public bool isLoaded { get; set; }
-        public bool isFocused { get; set; }
-        public bool soundPlayed { get; set; }
-        public DateTime FirstSeen { get; set; }
-        public DateTime LastSeen { get; set; }
-        public ulong lastKnownGameObjectId { get; set; }
+        // Für IPlayerCharacter
+        public string GetPlayerKey(IPlayerCharacter character)
+        {
+            string w = GetWorldName(character.HomeWorld.RowId);
+            return $"{character.Name.TextValue}@{w}";
+        }
+
+        #endregion
+
+        #region Data-Class
+
+        public class ViewerInfo
+        {
+            public string Name { get; set; } = string.Empty;
+            public string World { get; set; } = string.Empty;
+            public bool IsActive { get; set; }
+            public bool isLoaded { get; set; }
+            public bool isFocused { get; set; }
+            public bool soundPlayed { get; set; }
+            public DateTime FirstSeen { get; set; }
+            public DateTime LastSeen { get; set; }
+            public ulong lastKnownGameObjectId { get; set; }
+        }
+
+        #endregion
     }
 }

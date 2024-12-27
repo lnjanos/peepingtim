@@ -3,45 +3,35 @@ using ImGuiNET;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
-using Dalamud.Game.ClientState.Objects.SubKinds;
 using ECommons.DalamudServices;
 using ECommons.Logging;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using ECommons.GameFunctions;
-using ECommons.EzEventManager;
-using ECommons.PartyFunctions;
-using ECommons.Throttlers;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using System.Xml.Linq;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
-using static System.Net.Mime.MediaTypeNames;
-using Dalamud.IoC;
-using FFXIVClientStructs.FFXIV.Client.UI;
+using Dalamud.Game.ClientState.Objects.SubKinds;
+using ECommons.GameFunctions;
 
 namespace PeepingTim.Windows
 {
     public class StalkerWindow : Window, IDisposable
     {
         private Plugin Plugin;
-        private Plugin.ViewerInfo user;
+        private Plugin.ViewerInfo user; // Der Stalker selbst
 
-        public StalkerWindow(Plugin plugin, Plugin.ViewerInfo user) : base(
-            user.Name,
-            ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+        public StalkerWindow(Plugin plugin, Plugin.ViewerInfo user)
+            : base(user.Name, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
         {
             this.SizeConstraints = new WindowSizeConstraints
             {
-                MinimumSize = new Vector2(225, 130),
+                MinimumSize = new Vector2(225, 225),
                 MaximumSize = new Vector2(225, 300)
             };
 
-            Size = new Vector2(225, 130);
+            Size = new Vector2(225, 225);
             SizeCondition = ImGuiCond.FirstUseEver;
 
             this.Plugin = plugin;
             this.user = user;
+            this.IsOpen = true;
         }
 
         public void Dispose()
@@ -49,18 +39,28 @@ namespace PeepingTim.Windows
             // Dispose resources if needed
         }
 
+        public override void OnClose()
+        {
+            this.Plugin.CloseStalkerWindow(this.user);
+            base.OnClose();
+        }
+
         public override void Draw()
         {
-            var viewers = Plugin.GetViewers();
+            // 1) Wen schaut der Stalker an?
+            var lookinAt = new List<Plugin.ViewerInfo?>()
+            {
+                this.Plugin.GetStalkerTarget(user)
+            };
 
-            // Title Section
+            var allViewers = Plugin.GetAllViewers();
+
             ImGui.Spacing();
-            ImGui.TextColored(Plugin.Configuration.titleColor, "Current Viewers");
+            ImGui.TextColored(Plugin.Configuration.titleColor, "Targeting");
             ImGui.SameLine();
             ImGui.TextDisabled("(?)");
             if (ImGui.IsItemHovered())
             {
-                // Tooltip explaining left/right click behavior
                 ImGui.BeginTooltip();
                 ImGui.PushTextWrapPos(ImGui.GetFontSize() * 20f);
                 ImGui.TextUnformatted("Left click: Target this character\nRight click: Open context menu (e.g., send a tell or view adventure plate)");
@@ -70,71 +70,44 @@ namespace PeepingTim.Windows
             ImGui.Separator();
             ImGui.Spacing();
 
-            // Calculate the available height for the child region
-            // Subtract the height of fixed elements (title, separators, etc.)
-            // You may need to adjust the subtracted value based on your UI layout
-            float availableHeight = ImGui.GetContentRegionAvail().Y;
-
-            // Begin Child Region for Viewer List
-            // Set the child region to take the remaining available height
-            // Remove borders and padding to maintain existing window appearance
-            ImGui.BeginChild("ViewerListChild", new Vector2(0, availableHeight), false, ImGuiWindowFlags.HorizontalScrollbar);
-
-            if (viewers.Count > 0)
+            if (lookinAt[0] != null)
             {
-                // Iterate through each viewer and display with color-coding and context menu
-                foreach (var viewer in viewers)
+                foreach (var viewer in lookinAt)
                 {
-                    // Determine color based on viewer state
+                    // Farbe
                     if (viewer.IsActive)
-                    {
                         ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.targetingColor);
-                    }
                     else if (!viewer.isLoaded)
-                    {
                         ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.unloadedColor);
-                    }
                     else
-                    {
                         ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.loadedColor);
-                    }
 
                     var time = viewer.LastSeen.ToString("HH:mm");
-                    bool isSelected = false; // Modify if you have selection logic
+                    bool isSelected = false;
                     if (ImGui.Selectable(viewer.Name, isSelected))
                     {
-                        // Handle selection if needed
+                        // ...
                     }
 
-                    // Calculate the position to place the timestamp on the right
                     float windowWidth = ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
                     ImGui.PopStyleColor();
 
-                    // Handle hover and click events
                     if (ImGui.IsItemHovered())
                     {
-                        // Highlight focused viewer if applicable
                         if (viewer.isLoaded && !viewer.isFocused)
                         {
-                            // Unhighlight previously focused viewers, highlight the current hovered one
-                            foreach (var v in viewers)
+                            foreach (var v in allViewers)
                             {
-                                if (v.isFocused)
-                                {
-                                    Plugin.HighlightCharacter(v);
-                                }
+                                if (v.isFocused) Plugin.HighlightCharacter(v);
                             }
                             Plugin.HighlightCharacter(viewer);
                         }
 
-                        // Left click: target the character
                         if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                         {
                             Plugin.TargetCharacter(viewer);
                             ImGui.SetWindowFocus(null);
                         }
-
-                        // Right click: open context menu
                         if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
                         {
                             ImGui.OpenPopup($"ContextMenu_{viewer.Name}");
@@ -142,11 +115,9 @@ namespace PeepingTim.Windows
                     }
                     else if (viewer.isFocused)
                     {
-                        // Keep highlighting the focused character if mouse is not hovered anymore
                         Plugin.HighlightCharacter(viewer);
                     }
 
-                    // Context Menu for each viewer
                     if (ImGui.BeginPopup($"ContextMenu_{viewer.Name}"))
                     {
                         if (ImGui.MenuItem("Send Tell"))
@@ -154,7 +125,6 @@ namespace PeepingTim.Windows
                             Plugin.OpenMessageWindow(viewer);
                         }
 
-                        // Adventure Plate option if viewer is loaded
                         if (viewer.isLoaded)
                         {
                             if (ImGui.MenuItem("View Adventure Plate"))
@@ -178,21 +148,134 @@ namespace PeepingTim.Windows
                         ImGui.EndPopup();
                     }
 
-                    // Re-apply color for the timestamp line
+                    // Timestamp
                     if (viewer.IsActive)
-                    {
                         ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.targetingColor);
-                    }
                     else if (!viewer.isLoaded)
-                    {
                         ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.unloadedColor);
-                    }
                     else
-                    {
                         ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.loadedColor);
+
+                    ImGui.SameLine(windowWidth - ImGui.CalcTextSize(time).X);
+                    ImGui.TextUnformatted(time);
+                    ImGui.PopStyleColor();
+                }
+            }
+            else
+            {
+                ImGui.Text("Is not focusing anyone.");
+            }
+
+            float availableHeight = ImGui.GetContentRegionAvail().Y;
+
+
+            // 2) Wer schaut den Stalker an?
+            ImGui.Spacing();
+            ImGui.TextColored(Plugin.Configuration.titleColor, "Current Viewers");
+            ImGui.SameLine();
+            ImGui.TextDisabled("(?)");
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.BeginTooltip();
+                ImGui.PushTextWrapPos(ImGui.GetFontSize() * 20f);
+                ImGui.TextUnformatted("Left click: Target this character\nRight click: Open context menu (e.g., send a tell or view adventure plate)");
+                ImGui.PopTextWrapPos();
+                ImGui.EndTooltip();
+            }
+            ImGui.Separator();
+            ImGui.Spacing();
+
+            // Gleiche Child-Region wie oben, 
+            // oder Du splittest Dein Fenster in 2 Childs etc.
+
+            float availableHeight2 = ImGui.GetContentRegionAvail().Y;
+            ImGui.BeginChild("ViewerListChild", new Vector2(0, availableHeight2), false, ImGuiWindowFlags.HorizontalScrollbar);
+
+            var stalkerViewers = Plugin.GetStalkerViewers(user);
+            if (stalkerViewers.Count > 0)
+            {
+                foreach (var viewer in stalkerViewers)
+                {
+                    if (viewer.IsActive)
+                        ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.targetingColor);
+                    else if (!viewer.isLoaded)
+                        ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.unloadedColor);
+                    else
+                        ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.loadedColor);
+
+                    var time = viewer.LastSeen.ToString("HH:mm");
+                    bool isSelected = false;
+                    if (ImGui.Selectable(viewer.Name, isSelected))
+                    {
                     }
 
-                    // Display the timestamp on the same line, right-aligned
+                    float windowWidth = ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
+                    ImGui.PopStyleColor();
+
+                    if (ImGui.IsItemHovered())
+                    {
+                        if (viewer.isLoaded && !viewer.isFocused)
+                        {
+                            foreach (var v in allViewers)
+                            {
+                                if (v.isFocused) Plugin.HighlightCharacter(v);
+                            }
+                            Plugin.HighlightCharacter(viewer);
+                        }
+
+                        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                        {
+                            Plugin.TargetCharacter(viewer);
+                            ImGui.SetWindowFocus(null);
+                        }
+
+                        if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+                        {
+                            ImGui.OpenPopup($"ContextMenu_{viewer.Name}");
+                        }
+                    }
+                    else if (viewer.isFocused)
+                    {
+                        Plugin.HighlightCharacter(viewer);
+                    }
+
+                    if (ImGui.BeginPopup($"ContextMenu_{viewer.Name}"))
+                    {
+                        if (ImGui.MenuItem("Send Tell"))
+                        {
+                            Plugin.OpenMessageWindow(viewer);
+                        }
+
+                        if (viewer.isLoaded)
+                        {
+                            if (ImGui.MenuItem("View Adventure Plate"))
+                            {
+                                foreach (var x in Svc.Objects)
+                                {
+                                    if (x is IPlayerCharacter pc &&
+                                        pc.Name.ToString() == viewer.Name &&
+                                        Plugin.GetWorldName(pc.HomeWorld.RowId) == viewer.World)
+                                    {
+                                        unsafe
+                                        {
+                                            GameObject* xStruct = x.Struct();
+                                            AgentCharaCard.Instance()->OpenCharaCard(xStruct);
+                                        }
+                                        PluginLog.Debug($"Opening characard via gameobject {x}");
+                                    }
+                                }
+                            }
+                        }
+                        ImGui.EndPopup();
+                    }
+
+                    if (viewer.IsActive)
+                        ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.targetingColor);
+                    else if (!viewer.isLoaded)
+                        ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.unloadedColor);
+                    else
+                        ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.loadedColor);
+
                     ImGui.SameLine(windowWidth - ImGui.CalcTextSize(time).X);
                     ImGui.TextUnformatted(time);
                     ImGui.PopStyleColor();
@@ -205,7 +288,5 @@ namespace PeepingTim.Windows
 
             ImGui.EndChild();
         }
-
-
     }
 }
