@@ -29,6 +29,7 @@ using ECommons.Logging;
 using System.IO;
 using FFXIVClientStructs.FFXIV.Client.Sound;
 using ECommons.EzEventManager;
+using FFXIVClientStructs.FFXIV.Common.Lua;
 
 namespace PeepingTim
 {
@@ -359,19 +360,7 @@ namespace PeepingTim
 
                         if (!viewers.TryGetValue(charKey, out var vInfo))
                         {
-                            vInfo = new ViewerInfo
-                            {
-                                Name = character.Name.TextValue,
-                                World = GetWorldName(character.HomeWorld.RowId),
-                                IsActive = true,
-                                isLoaded = true,
-                                isFocused = false,
-                                soundPlayed = false,
-                                FirstSeen = DateTime.Now,
-                                LastSeen = DateTime.Now,
-                                lastKnownGameObjectId = character.GameObjectId,
-                            };
-                            viewers[charKey] = vInfo;
+                            viewers[charKey] = CreateViewer(character);
                         }
                         else
                         {
@@ -403,19 +392,7 @@ namespace PeepingTim
 
                         if (!stalkerViewers[stalkerKey].TryGetValue(charKey, out var sViewerInfo))
                         {
-                            sViewerInfo = new ViewerInfo
-                            {
-                                Name = character.Name.TextValue,
-                                World = GetWorldName(character.HomeWorld.RowId),
-                                IsActive = true,
-                                isLoaded = true,
-                                isFocused = false,
-                                soundPlayed = false,
-                                FirstSeen = DateTime.Now,
-                                LastSeen = DateTime.Now,
-                                lastKnownGameObjectId = character.GameObjectId,
-                            };
-                            stalkerViewers[stalkerKey][charKey] = sViewerInfo;
+                            stalkerViewers[stalkerKey][charKey] = CreateViewer(character);
                         }
                         else
                         {
@@ -444,20 +421,16 @@ namespace PeepingTim
                             }
                             else
                             {                            
-
-                                var v = new ViewerInfo
+                                if (stalkerLooksAt[stKey2] != null)
                                 {
-                                    Name = possibleTarget.Name.TextValue,
-                                    World = GetWorldName(possibleTarget.HomeWorld.RowId),
-                                    IsActive = true,
-                                    isLoaded = true,
-                                    isFocused = false,
-                                    soundPlayed = false,
-                                    FirstSeen = DateTime.Now,
-                                    LastSeen = DateTime.Now,
-                                    lastKnownGameObjectId = possibleTarget.GameObjectId,
-                                };
-                                stalkerLooksAt[stKey2] = v;
+                                    if (GetViewerKey(stalkerLooksAt[stKey2]!) != $"{possibleTarget.Name.TextValue}@{GetWorldName(possibleTarget.HomeWorld.RowId)}")
+                                    {
+                                        stalkerLooksAt[stKey2] = CreateViewer(possibleTarget);
+                                    }
+                                } else
+                                {
+                                    stalkerLooksAt[stKey2] = CreateViewer(possibleTarget);
+                                }
 
                             }
                         }
@@ -721,6 +694,22 @@ namespace PeepingTim
             public DateTime FirstSeen { get; set; }
             public DateTime LastSeen { get; set; }
             public ulong lastKnownGameObjectId { get; set; }
+        }
+
+        public ViewerInfo CreateViewer(IPlayerCharacter x)
+        {
+            return new ViewerInfo
+            {
+                Name = x.Name.TextValue,
+                World = GetWorldName(x.HomeWorld.RowId),
+                IsActive = true,
+                isLoaded = true,
+                isFocused = false,
+                soundPlayed = false,
+                FirstSeen = DateTime.Now,
+                LastSeen = DateTime.Now,
+                lastKnownGameObjectId = x.GameObjectId,
+            };
         }
 
         #endregion
