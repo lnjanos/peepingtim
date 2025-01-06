@@ -9,6 +9,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using ECommons.GameFunctions;
+using Dalamud.Game.ClientState.Objects.Types;
 
 namespace PeepingTim.Windows
 {
@@ -129,18 +130,29 @@ namespace PeepingTim.Windows
                         {
                             if (ImGui.MenuItem("View Adventure Plate"))
                             {
-                                foreach (var x in Svc.Objects)
+                                IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
+                                if (pc != null)
                                 {
-                                    if (x is IPlayerCharacter pc &&
-                                        pc.Name.ToString() == viewer.Name &&
-                                        Plugin.GetWorldName(pc.HomeWorld.RowId) == viewer.World)
+                                    unsafe
                                     {
-                                        unsafe
+                                        Svc.Framework.RunOnTick(() =>
                                         {
-                                            GameObject* xStruct = x.Struct();
-                                            AgentCharaCard.Instance()->OpenCharaCard(xStruct);
-                                        }
-                                        PluginLog.Debug($"Opening characard via gameobject {x}");
+                                            AgentCharaCard.Instance()->OpenCharaCard(pc.Struct());
+                                        });
+                                    }
+                                }
+                            }
+                            if (ImGui.MenuItem("Examine"))
+                            {
+                                IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
+                                if (pc != null)
+                                {
+                                    unsafe
+                                    {
+                                        Svc.Framework.RunOnTick(() =>
+                                        {
+                                            AgentInspect.Instance()->ExamineCharacter(pc.EntityId);
+                                        });
                                     }
                                 }
                             }
@@ -250,18 +262,29 @@ namespace PeepingTim.Windows
                         {
                             if (ImGui.MenuItem("View Adventure Plate"))
                             {
-                                foreach (var x in Svc.Objects)
+                                IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
+                                if (pc != null)
                                 {
-                                    if (x is IPlayerCharacter pc &&
-                                        pc.Name.ToString() == viewer.Name &&
-                                        Plugin.GetWorldName(pc.HomeWorld.RowId) == viewer.World)
+                                    unsafe
                                     {
-                                        unsafe
+                                        Svc.Framework.RunOnTick(() =>
                                         {
-                                            GameObject* xStruct = x.Struct();
-                                            AgentCharaCard.Instance()->OpenCharaCard(xStruct);
-                                        }
-                                        PluginLog.Debug($"Opening characard via gameobject {x}");
+                                            AgentCharaCard.Instance()->OpenCharaCard(pc.Struct());
+                                        });
+                                    }
+                                }
+                            }
+                            if (ImGui.MenuItem("Examine"))
+                            {
+                                IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
+                                if (pc != null)
+                                {
+                                    unsafe
+                                    {
+                                        Svc.Framework.RunOnTick(() =>
+                                        {
+                                            AgentInspect.Instance()->ExamineCharacter(pc.EntityId);
+                                        });
                                     }
                                 }
                             }

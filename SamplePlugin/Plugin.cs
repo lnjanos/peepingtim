@@ -712,6 +712,22 @@ namespace PeepingTim
             };
         }
 
+        public ViewerInfo CreateTestViewer(string Name, string WordlName)
+        {
+            return new ViewerInfo
+            {
+                Name = Name,
+                World = WordlName,
+                IsActive = true,
+                isLoaded = true,
+                isFocused = false,
+                soundPlayed = false,
+                FirstSeen = DateTime.Now,
+                LastSeen = DateTime.Now,
+                lastKnownGameObjectId = 123,
+            };
+        }
+
         #endregion
     }
 }
