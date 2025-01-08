@@ -30,6 +30,7 @@ using System.IO;
 using FFXIVClientStructs.FFXIV.Client.Sound;
 using ECommons.EzEventManager;
 using FFXIVClientStructs.FFXIV.Common.Lua;
+using FFXIVClientStructs.FFXIV.Client.UI.Info;
 
 namespace PeepingTim
 {
@@ -694,10 +695,17 @@ namespace PeepingTim
             public DateTime FirstSeen { get; set; }
             public DateTime LastSeen { get; set; }
             public ulong lastKnownGameObjectId { get; set; }
+            public ulong cid { get; set; } = 0;
         }
 
         public ViewerInfo CreateViewer(IPlayerCharacter x)
         {
+            ulong cid = 0;
+            unsafe
+            {
+                cid = x.Struct()->ContentId;
+            }
+
             return new ViewerInfo
             {
                 Name = x.Name.TextValue,
@@ -709,6 +717,7 @@ namespace PeepingTim
                 FirstSeen = DateTime.Now,
                 LastSeen = DateTime.Now,
                 lastKnownGameObjectId = x.GameObjectId,
+                cid = cid
             };
         }
 

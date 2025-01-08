@@ -130,11 +130,24 @@ namespace PeepingTim.Windows
                             Plugin.OpenMessageWindow(viewer);
                         }
 
-                        if (viewer.isLoaded)
+                        if (viewer.cid != 0)
+                        {
+                            if (ImGui.MenuItem("View Adventure Plate"))
+                            {
+                                unsafe
+                                {
+                                    Svc.Framework.RunOnTick(() =>
+                                    {
+                                        AgentCharaCard.Instance()->OpenCharaCard(viewer.cid);
+                                    });
+                                }
+                            }
+                        } else if (viewer.isLoaded)
                         {
                             if (ImGui.MenuItem("View Adventure Plate"))
                             {
                                 IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
+                                IPlayerCharacter? x = pc as IPlayerCharacter;
                                 if (pc != null)
                                 {
                                     unsafe
@@ -146,6 +159,10 @@ namespace PeepingTim.Windows
                                     }
                                 }
                             }
+                        }
+
+                        if (viewer.isLoaded)
+                        {
                             if (ImGui.MenuItem("Examine"))
                             {
                                 IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
