@@ -25,7 +25,7 @@ public class Configuration : IPluginConfiguration
     public Vector4 unloadedColor { get; set; } = new Vector4(0.5f, 0.5f, 0.5f, 1f);
     public Vector4 loadedColor { get; set; } = new Vector4(1f, 1f, 1f, 1f);
 
-    public readonly string DevVersion = "1.2.0.0";
+    public readonly string DevVersion = "1.2.1.0";
 
     public static string BasePath = Plugin.PluginInterface.GetPluginConfigDirectory();
 
