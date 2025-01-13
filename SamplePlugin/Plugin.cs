@@ -224,7 +224,7 @@ namespace PeepingTim
             stalkerWindows[stalkerKey] = stalkerWindow;
         }
 
-        public void CloseStalkerWindow(ViewerInfo v)
+        public void i(ViewerInfo v)
         {
             string stalkerKey = GetViewerKey(v);
 
@@ -334,7 +334,7 @@ namespace PeepingTim
             foreach (var sc in toClose)
             {
                 var fallback = new ViewerInfo { Name = sc, World = "(???)" };
-                CloseStalkerWindow(fallback);
+                //CloseStalkerWindow(fallback);
             }
 
             // Wer guckt mich an? 

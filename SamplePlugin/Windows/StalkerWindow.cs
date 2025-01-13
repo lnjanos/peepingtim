@@ -42,7 +42,7 @@ namespace PeepingTim.Windows
 
         public override void OnClose()
         {
-            this.Plugin.CloseStalkerWindow(this.user);
+            //this.Plugin.CloseStalkerWindow(this.user);
             base.OnClose();
         }
 

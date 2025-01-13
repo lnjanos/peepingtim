@@ -161,6 +161,25 @@ namespace PeepingTim.Windows
                             }
                         }
 
+                        if (!viewer.isLoaded)
+                        {
+                            if (ImGui.MenuItem("Get Location"))
+                            {
+                                IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
+                                if (pc != null)
+                                {
+                                    unsafe
+                                    {
+                                        // some code
+                                        Svc.Framework.RunOnTick(() =>
+                                        {
+                                           // some execute
+                                        });
+                                    }
+                                }
+                            }
+                        }
+
                         if (viewer.isLoaded)
                         {
                             if (ImGui.MenuItem("Examine"))
