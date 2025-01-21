@@ -31,6 +31,8 @@ using FFXIVClientStructs.FFXIV.Client.Sound;
 using ECommons.EzEventManager;
 using FFXIVClientStructs.FFXIV.Common.Lua;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
+using ECommons.DalamudServices;
+using System.Threading.Tasks;
 
 namespace PeepingTim
 {
@@ -526,6 +528,25 @@ namespace PeepingTim
             }
         }
 
+        public void DoteViewer(ViewerInfo viewer)
+        {
+            if (viewer == null) return;
+
+            IPlayerCharacter? x = ObjectTable.SearchById(viewer.lastKnownGameObjectId) as IPlayerCharacter;
+
+            if (x == null) return;
+
+            if (viewer.isLoaded && x.IsTargetable)
+            {
+                TargetManager.Target = x;
+                Task.Delay(1000);
+                Svc.Framework.RunOnTick(() =>
+                {
+                    Chat.Instance.SendMessage("/dote");
+                });
+            }
+        }
+
         public void HighlightCharacter(ViewerInfo viewer)
         {
             if (viewer == null) return;
@@ -607,7 +628,10 @@ namespace PeepingTim
             if (viewer != null)
             {
                 string command = $"/tell {viewer.Name}@{viewer.World} {message}";
-                Chat.Instance.SendMessage(command);
+                Svc.Framework.RunOnTick(() =>
+                {
+                    Chat.Instance.SendMessage(command);
+                });
             }
         }
 

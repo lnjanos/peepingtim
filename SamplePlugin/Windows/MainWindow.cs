@@ -130,6 +130,14 @@ namespace PeepingTim.Windows
                             Plugin.OpenMessageWindow(viewer);
                         }
 
+                        if (viewer.isLoaded)
+                        {
+                            if (ImGui.MenuItem("Dote"))
+                            {
+                                Plugin.DoteViewer(viewer);
+                            }
+                        }
+
                         if (viewer.cid != 0)
                         {
                             if (ImGui.MenuItem("View Adventure Plate"))
