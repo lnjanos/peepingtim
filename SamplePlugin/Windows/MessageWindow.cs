@@ -26,6 +26,8 @@ namespace PeepingTim.Windows
             this.Plugin = plugin;
             this.Viewer = viewer;
 
+            TitleBarButtons.Add(Support.NavBarBtn);
+
             // Fenster direkt öffnen
             this.IsOpen = true;
 

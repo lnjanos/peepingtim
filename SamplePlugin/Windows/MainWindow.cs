@@ -33,6 +33,8 @@ namespace PeepingTim.Windows
             Size = new Vector2(225, 130);
             SizeCondition = ImGuiCond.FirstUseEver;
 
+            TitleBarButtons.Add(Support.NavBarBtn);
+
             this.Plugin = plugin;
         }
 
@@ -116,101 +118,11 @@ namespace PeepingTim.Windows
                     }
                     else if (viewer.isFocused)
                     {
-                        // Falls du möchtest, dass der Fokus aufgehoben wird,
-                        // wenn die Maus weg geht, kannst du es hier toggeln.
-                        // Hier bleibt es der Demo halber so, wie es ist.
                         Plugin.HighlightCharacter(viewer);
                     }
 
                     // Kontextmenü
-                    if (ImGui.BeginPopup($"ContextMenu_{viewer.Name}"))
-                    {
-                        if (ImGui.MenuItem("Send Tell"))
-                        {
-                            Plugin.OpenMessageWindow(viewer);
-                        }
-
-                        if (viewer.isLoaded)
-                        {
-                            if (ImGui.MenuItem("Dote"))
-                            {
-                                Plugin.DoteViewer(viewer);
-                            }
-                        }
-
-                        if (viewer.cid != 0)
-                        {
-                            if (ImGui.MenuItem("View Adventure Plate"))
-                            {
-                                unsafe
-                                {
-                                    Svc.Framework.RunOnTick(() =>
-                                    {
-                                        AgentCharaCard.Instance()->OpenCharaCard(viewer.cid);
-                                    });
-                                }
-                            }
-                        } else if (viewer.isLoaded)
-                        {
-                            if (ImGui.MenuItem("View Adventure Plate"))
-                            {
-                                IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
-                                IPlayerCharacter? x = pc as IPlayerCharacter;
-                                if (pc != null)
-                                {
-                                    unsafe
-                                    {
-                                        Svc.Framework.RunOnTick(() =>
-                                        {
-                                            AgentCharaCard.Instance()->OpenCharaCard(pc.Struct());
-                                        });
-                                    }
-                                }
-                            }
-                        }
-
-                        if (!viewer.isLoaded)
-                        {
-                            if (ImGui.MenuItem("Get Location"))
-                            {
-                                IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
-                                if (pc != null)
-                                {
-                                    unsafe
-                                    {
-                                        // some code
-                                        Svc.Framework.RunOnTick(() =>
-                                        {
-                                           // some execute
-                                        });
-                                    }
-                                }
-                            }
-                        }
-
-                        if (viewer.isLoaded)
-                        {
-                            if (ImGui.MenuItem("Examine"))
-                            {
-                                IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
-                                if (pc != null)
-                                {
-                                    unsafe
-                                    {
-                                        Svc.Framework.RunOnTick(() =>
-                                        {
-                                            AgentInspect.Instance()->ExamineCharacter(pc.EntityId);
-                                        });
-                                    }
-                                }
-                            }
-                            if (ImGui.MenuItem("Stalk"))
-                            {
-                                Plugin.OpenStalkWindow(viewer);
-                            }
-                        }
-                        ImGui.EndPopup();
-                    }
+                    Popup.Draw(Plugin, viewer);
 
                     // Timestamp
                     if (viewer.IsActive)

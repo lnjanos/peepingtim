@@ -8,7 +8,7 @@
             "Peeping Tim"
         ],
         "InternalName": "PeepingTim",
-        "AssemblyVersion": "1.2.1.0",
+        "AssemblyVersion": "1.2.2.0",
         "TestingAssemblyVersion": "1.1.0.0",
         "RepoUrl": "https://github.com/lnjanos/peepingtim",
         "ApplicableVersion": "any",
@@ -16,10 +16,10 @@
         "TestingDalamudApiLevel": 11,
         "IsHide": "False",
         "IsTestingExclusive": "False",
-        "DownloadCount": 1,
+        "DownloadCount": 150,
         "LastUpdate": 1733436251,
-        "DownloadLinkInstall": "https://github.com/lnjanos/peepingtim/releases/download/release/1.2.1.0.zip",
-        "DownloadLinkUpdate": "https://github.com/lnjanos/peepingtim/releases/download/release/1.2.1.0.zip",
+        "DownloadLinkInstall": "https://github.com/lnjanos/peepingtim/releases/download/release/1.2.2.0.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/peepingtim/releases/download/release/1.2.2.0.zip",
         "DownloadLinkTesting": "https://github.com/lnjanos/peepingtim/releases/download/testing/testing.zip",
         "IconUrl": "https://raw.githubusercontent.com/lnjanos/peepingtim/refs/heads/master/SamplePlugin/assets/pipipopo.png"
     },
@@ -35,7 +35,7 @@
             "Discord"
         ],
         "InternalName": "CrystalSync",
-        "AssemblyVersion": "1.1.0.3",
+        "AssemblyVersion": "1.1.1.0",
         "TestingAssemblyVersion": "1.1.0.9",
         "RepoUrl": "https://github.com/lnjanos/crystalsync/",
         "ApplicableVersion": "any",
@@ -43,10 +43,10 @@
         "TestingDalamudApiLevel": 11,
         "IsHide": "False",
         "IsTestingExclusive": "False",
-        "DownloadCount": 48,
+        "DownloadCount": 65,
         "LastUpdate": 1733780713,
-        "DownloadLinkInstall": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.1.0.3.zip",
-        "DownloadLinkUpdate": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.1.0.3.zip",
+        "DownloadLinkInstall": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.1.1.0.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.1.1.0.zip",
         "DownloadLinkTesting": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.1.0.9.zip",
         "IconUrl": "https://raw.githubusercontent.com/lnjanos/crystalsync/refs/heads/main/icon.png"
     },
@@ -59,7 +59,7 @@
             "YT Import for Yue's Dj"
         ],
         "InternalName": "YTImport",
-        "AssemblyVersion": "1.2.0.1",
+        "AssemblyVersion": "1.2.1.0",
         "TestingAssemblyVersion": "1.0.0.0",
         "RepoUrl": "https://github.com/lnjanos/yueImport",
         "ApplicableVersion": "any",
@@ -67,10 +67,10 @@
         "TestingDalamudApiLevel": 11,
         "IsHide": "False",
         "IsTestingExclusive": "False",
-        "DownloadCount": 45,
+        "DownloadCount": 38,
         "LastUpdate": 1733780713,
-        "DownloadLinkInstall": "https://github.com/lnjanos/yueImport/releases/download/release/1.2.0.1.zip",
-        "DownloadLinkUpdate": "https://github.com/lnjanos/yueImport/releases/download/release/1.2.0.1.zip",
+        "DownloadLinkInstall": "https://github.com/lnjanos/yueImport/releases/download/release/1.2.1.0.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/yueImport/releases/download/release/1.2.1.0.zip",
         "DownloadLinkTesting": "https://github.com/lnjanos/yueImport/releases/download/release/1.0.0.0.zip",
         "IconUrl": "https://raw.githubusercontent.com/lnjanos/yueImport/refs/heads/master/beepboop.png"
     }

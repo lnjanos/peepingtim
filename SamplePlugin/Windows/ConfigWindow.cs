@@ -17,6 +17,8 @@ using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using PeepingTim.Helpers;
+using ECommons;
+using ECommons.DalamudServices;
 
 namespace PeepingTim.Windows
 {
@@ -34,6 +36,8 @@ namespace PeepingTim.Windows
             SizeCondition = ImGuiCond.FirstUseEver;
             FileDialogManager = new FileDialogManager();
             SoundManager = new SoundManager(plugin);
+
+            TitleBarButtons.Add(Support.NavBarBtn);
 
             this.Plugin = plugin;
             this.Configuration = plugin.Configuration;
@@ -55,6 +59,9 @@ namespace PeepingTim.Windows
 
         public override void Draw()
         {
+            Support.DrawRight();
+
+
             FileDialogManager.Draw();
 
             // General padding for a cleaner layout
@@ -80,6 +87,46 @@ namespace PeepingTim.Windows
                     {
                         ImGui.SetTooltip("If enabled, the plugin will automatically start when you launch the game.");
                     }
+
+                    ImGui.Spacing();
+                    ImGui.TextColored(new Vector4(1.0f, 0.84f, 0.0f, 1.0f), "Popup Settings");
+                    ImGui.Separator();
+                    ImGui.Spacing();
+                    var tellOption = Configuration.TellOption;
+                    if (ImGui.Checkbox("Send Tell", ref tellOption))
+                    {
+                        Configuration.TellOption = tellOption;
+                        Configuration.Save();
+                    }
+
+                    var doteOption = Configuration.DoteOption;
+                    if (ImGui.Checkbox("Dote", ref doteOption))
+                    {
+                        Configuration.DoteOption = doteOption;
+                        Configuration.Save();
+                    }
+
+                    var apOption = Configuration.AdventurePlateOption;
+                    if (ImGui.Checkbox("View Adventure Plate", ref apOption))
+                    {
+                        Configuration.AdventurePlateOption = apOption;
+                        Configuration.Save();
+                    }
+
+                    var exOption = Configuration.ExamineOption;
+                    if (ImGui.Checkbox("Examine", ref exOption))
+                    {
+                        Configuration.ExamineOption = exOption;
+                        Configuration.Save();
+                    }
+
+                    var stalkOption = Configuration.StalkOption;
+                    if (ImGui.Checkbox("Stalk", ref stalkOption))
+                    {
+                        Configuration.StalkOption = stalkOption;
+                        Configuration.Save();
+                    }
+
 
                     ImGui.EndTabItem();
                 }

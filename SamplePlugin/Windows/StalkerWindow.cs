@@ -30,6 +30,8 @@ namespace PeepingTim.Windows
             Size = new Vector2(225, 225);
             SizeCondition = ImGuiCond.FirstUseEver;
 
+            TitleBarButtons.Add(Support.NavBarBtn);
+
             this.Plugin = plugin;
             this.user = user;
             this.IsOpen = true;
@@ -119,46 +121,7 @@ namespace PeepingTim.Windows
                         Plugin.HighlightCharacter(viewer);
                     }
 
-                    if (ImGui.BeginPopup($"ContextMenu_{viewer.Name}"))
-                    {
-                        if (ImGui.MenuItem("Send Tell"))
-                        {
-                            Plugin.OpenMessageWindow(viewer);
-                        }
-
-                        if (viewer.isLoaded)
-                        {
-                            if (ImGui.MenuItem("View Adventure Plate"))
-                            {
-                                IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
-                                if (pc != null)
-                                {
-                                    unsafe
-                                    {
-                                        Svc.Framework.RunOnTick(() =>
-                                        {
-                                            AgentCharaCard.Instance()->OpenCharaCard(pc.Struct());
-                                        });
-                                    }
-                                }
-                            }
-                            if (ImGui.MenuItem("Examine"))
-                            {
-                                IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
-                                if (pc != null)
-                                {
-                                    unsafe
-                                    {
-                                        Svc.Framework.RunOnTick(() =>
-                                        {
-                                            AgentInspect.Instance()->ExamineCharacter(pc.EntityId);
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                        ImGui.EndPopup();
-                    }
+                    Popup.Draw(Plugin, viewer);
 
                     // Timestamp
                     if (viewer.IsActive)
@@ -251,64 +214,7 @@ namespace PeepingTim.Windows
                         Plugin.HighlightCharacter(viewer);
                     }
 
-                    if (ImGui.BeginPopup($"ContextMenu_{viewer.Name}"))
-                    {
-                        if (ImGui.MenuItem("Send Tell"))
-                        {
-                            Plugin.OpenMessageWindow(viewer);
-                        }
-
-                        if (viewer.cid != 0)
-                        {
-                            if (ImGui.MenuItem("View Adventure Plate"))
-                            {
-                                unsafe
-                                {
-                                    Svc.Framework.RunOnTick(() =>
-                                    {
-                                        AgentCharaCard.Instance()->OpenCharaCard(viewer.cid);
-                                    });
-                                }
-                            }
-                        }
-                        else if (viewer.isLoaded)
-                        {
-                            if (ImGui.MenuItem("View Adventure Plate"))
-                            {
-                                IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
-                                IPlayerCharacter? x = pc as IPlayerCharacter;
-                                if (pc != null)
-                                {
-                                    unsafe
-                                    {
-                                        Svc.Framework.RunOnTick(() =>
-                                        {
-                                            AgentCharaCard.Instance()->OpenCharaCard(pc.Struct());
-                                        });
-                                    }
-                                }
-                            }
-                        }
-
-                        if (viewer.isLoaded)
-                        {
-                            if (ImGui.MenuItem("Examine"))
-                            {
-                                IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
-                                if (pc != null)
-                                {
-                                    unsafe
-                                    {
-                                        Svc.Framework.RunOnTick(() =>
-                                        {
-                                            AgentInspect.Instance()->ExamineCharacter(pc.EntityId);
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                        ImGui.EndPopup();
-                    }
+                    Popup.Draw(Plugin, viewer);
 
                     if (viewer.IsActive)
                         ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.targetingColor);
