@@ -14,6 +14,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Network.Structures.InfoProxy;
 using ECommons;
 using Dalamud.DrunkenToad.Extensions;
+using Dalamud.Interface;
 
 namespace PeepingTim.Windows
 {
@@ -34,6 +35,12 @@ namespace PeepingTim.Windows
             SizeCondition = ImGuiCond.FirstUseEver;
 
             TitleBarButtons.Add(Support.NavBarBtn);
+            TitleBarButtons.Add(new TitleBarButton
+            {
+                Click = (m) => { Plugin.DrawConfig(); },
+                Icon = FontAwesomeIcon.Cog,
+                ShowTooltip = () => ImGui.SetTooltip($"Opens Config")
+            });
 
             this.Plugin = plugin;
         }

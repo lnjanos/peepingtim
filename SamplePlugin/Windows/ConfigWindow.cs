@@ -127,6 +127,13 @@ namespace PeepingTim.Windows
                         Configuration.Save();
                     }
 
+                    var searchInfoOption = Configuration.SearchInfoOption;
+                    if (ImGui.Checkbox("Context Menu", ref searchInfoOption))
+                    {
+                        Configuration.SearchInfoOption = searchInfoOption;
+                        Configuration.Save();
+                    }
+
 
                     ImGui.EndTabItem();
                 }

@@ -33,6 +33,9 @@ using FFXIVClientStructs.FFXIV.Common.Lua;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using ECommons.DalamudServices;
 using System.Threading.Tasks;
+using Dalamud.Game.Gui.ContextMenu;
+using Dalamud.Utility;
+using ECommons.ChatMethods;
 
 namespace PeepingTim
 {
@@ -48,6 +51,7 @@ namespace PeepingTim
         [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
         [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
         [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
+        [PluginService] internal static IContextMenu ContextMenu { get; private set; } = null!;
 
         private const string CommandName1 = "/ptim";
         private const string CommandName2 = "/peepingtim";
@@ -56,6 +60,8 @@ namespace PeepingTim
         // Statt ViewerInfo als Key => String als Key ("Name@World")
         // "Normale" Viewer
         private Dictionary<string, ViewerInfo> viewers = new();
+
+        private Dictionary<string, ViewerInfo> unknownViewer = new();
 
         // Stalker: Key = "Name@World" des Stalkers
         // Value = Dictionary mit Key="ViewerName@World" und Value=ViewerInfo
@@ -95,6 +101,8 @@ namespace PeepingTim
             MainWindow = new MainWindow(this);
             ConfigWindow = new ConfigWindow(this);
             SoundManager = new Helpers.SoundManager(this);
+
+            ContextMenu.OnMenuOpened += OnMenu;
 
             WindowSystem.AddWindow(MainWindow);
             WindowSystem.AddWindow(ConfigWindow);
@@ -137,6 +145,48 @@ namespace PeepingTim
             SoundManager.CheckSoundFile();
 
             Framework.Update += OnUpdate;
+        }
+
+        private void OnMenu(IMenuOpenedArgs args)
+        {
+            if (args.MenuType == ContextMenuType.Inventory || !Configuration.StalkOption) 
+                return;
+
+            try
+            {
+                MenuTargetDefault target = (MenuTargetDefault)args.Target;
+                if (target.TargetObject != null && target.TargetObject is IPlayerCharacter pc)
+                {
+                    args.AddMenuItem(new()
+                    {
+                        Name = "Stalk (PTim)",
+                        OnClicked = TestMenuItem,
+                        Prefix = SeIconChar.BoxedLetterP,
+                        Priority = 50
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                ChatGui.PrintError(ex.Message);
+            }
+        }
+
+        private void TestMenuItem(IMenuItemClickedArgs args)
+        {
+            try
+            {
+                MenuTargetDefault target = (MenuTargetDefault)args.Target;
+                if (target.TargetObject != null && target.TargetObject is IPlayerCharacter pc) 
+                {
+                    OpenStalkWindow(CreateViewer(pc));
+                }
+            }
+            catch (Exception ex)
+            {
+                ChatGui.PrintError(ex.Message);
+            }
+            //OpenStalkWindow(CreateViewer(args.));
         }
 
         public void Dispose()
@@ -189,7 +239,7 @@ namespace PeepingTim
         }
 
         private void DrawUI() => WindowSystem.Draw();
-        private void DrawConfig() => OnConfig("/ptimconfig", "");
+        public void DrawConfig() => OnConfig("/ptimconfig", "");
         private void DrawMain() => OnCommand("/ptim", "");
 
         public void PrintCommands()
@@ -207,6 +257,34 @@ namespace PeepingTim
 
         #region Stalker-Management
 
+        public void CloseStalkerWindow(ViewerInfo viewer)
+        {
+            string stalkerKey = GetViewerKey(viewer);
+            bool shouldContinue = false;
+
+            // Schon vorhanden?
+            if(unknownViewer.ContainsKey(stalkerKey))
+            {
+                unknownViewer.Remove(stalkerKey);
+                shouldContinue = true;
+            } 
+            if (stalkerViewers.ContainsKey(stalkerKey))
+            {
+                stalkerViewers.Remove(stalkerKey);
+                shouldContinue = true;
+            }
+
+            if (!shouldContinue)
+                return;
+
+            WindowSystem.RemoveWindow(stalkerWindows[stalkerKey]);
+
+            if (!stalkerWindows.ContainsKey(stalkerKey))
+                return;
+
+            stalkerWindows.Remove(stalkerKey);
+        }
+
         public void OpenStalkWindow(ViewerInfo viewer)
         {
             // Der Key des Stalkers
@@ -215,6 +293,11 @@ namespace PeepingTim
             // Schon vorhanden?
             if (stalkerViewers.ContainsKey(stalkerKey))
                 return;
+
+            if (!viewers.ContainsKey(stalkerKey))
+            {
+                unknownViewer.Add(stalkerKey, viewer);
+            }
 
             // Neues Dictionary für alle Viewer, die diesen Stalker anschauen
             stalkerViewers[stalkerKey] = new Dictionary<string, ViewerInfo>();
@@ -318,26 +401,24 @@ namespace PeepingTim
             var toClose = new List<string>();
             foreach (var kv in stalkerViewers)
             {
-                // kv.Key = "Name@World" vom Stalker
-                // Wir suchen in "viewers" den Eintrag – oder haben den Stalker selbst
-                if (!viewers.TryGetValue(kv.Key, out var stInfo) || !stInfo.isLoaded)
+                if (viewers.TryGetValue(kv.Key, out var stInfo) && stInfo.isLoaded)
                 {
-                    // Schließen, wenn er nicht geladen oder unbekannt ist
-                    toClose.Add(kv.Key);
-                }
-                else
-                {
-                    // Stalker existiert und ist loaded
                     stalkedIds[stInfo.lastKnownGameObjectId] = kv.Key;
+                } else if (unknownViewer.TryGetValue(kv.Key, out var stInfoTwo) && stInfoTwo.isLoaded)
+                {
+                    stalkedIds[stInfoTwo.lastKnownGameObjectId] = kv.Key;
+                } else
+                {
+                    toClose.Add(kv.Key);
                 }
             }
 
-            // Falls Stalker entladen, Fenster schließen
-            foreach (var sc in toClose)
-            {
-                var fallback = new ViewerInfo { Name = sc, World = "(???)" };
-                //CloseStalkerWindow(fallback);
-            }
+            //// Falls Stalker entladen, Fenster schließen
+            //foreach (var sc in toClose)
+            //{
+            //    var fallback = new ViewerInfo { Name = sc, World = "(???)" };
+            //    //CloseStalkerWindow(fallback);
+            //}
 
             // Wer guckt mich an? 
             var currentlyLookingAtMe = new HashSet<string>();
@@ -485,6 +566,11 @@ namespace PeepingTim
             {
                 foreach (var v in stDict.Values)
                     set.Add(v);
+            }
+
+            foreach (var v in unknownViewer.Values)
+            {
+                set.Add(v);
             }
 
             // Jeder Stalker guckt ggf. jmd. an

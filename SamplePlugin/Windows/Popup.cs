@@ -18,6 +18,8 @@ using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using ECommons.GameFunctions;
 using Dalamud.Plugin;
+using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Info;
 
 namespace PeepingTim.Windows
 {
@@ -92,6 +94,20 @@ namespace PeepingTim.Windows
                     if (Plugin.Configuration.StalkOption && ImGui.MenuItem("Stalk"))
                     {
                         Plugin.OpenStalkWindow(viewer);
+                    }
+                    if (Plugin.Configuration.SearchInfoOption && ImGui.MenuItem("Open Context Menu"))
+                    {
+                        IGameObject? pc = Svc.Objects.SearchById(viewer.lastKnownGameObjectId);
+                        if (pc != null)
+                        {
+                            unsafe
+                            {
+                                Svc.Framework.RunOnTick(() =>
+                                {
+                                    AgentHUD.Instance()->OpenContextMenuFromTarget(pc.Struct());
+                                });
+                            }
+                        }
                     }
                 }
                 ImGui.EndPopup();
