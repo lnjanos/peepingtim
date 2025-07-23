@@ -1,0 +1,113 @@
+[
+    {
+        "Author": "kcuY",
+        "Name": "Peeping Tim",
+        "Punchline": "Skibidi.",
+        "Description": "Just a different Version of Peeping Tom",
+        "Tags": [
+            "Peeping Tim",
+            "kcuy"
+        ],
+        "InternalName": "PeepingTim",
+        "AssemblyVersion": "1.3.0.1",
+        "TestingAssemblyVersion": "1.1.0.0",
+        "RepoUrl": "https://github.com/lnjanos/peepingtim",
+        "ApplicableVersion": "any",
+        "DalamudApiLevel": 12,
+        "TestingDalamudApiLevel": 12,
+        "IsHide": "False",
+        "IsTestingExclusive": "False",
+        "DownloadCount": 1,
+        "LastUpdate": 1733436251,
+        "DownloadLinkInstall": "https://github.com/lnjanos/peepingtim/releases/download/release/1.3.0.1.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/peepingtim/releases/download/release/1.3.0.1.zip",
+        "DownloadLinkTesting": "https://github.com/lnjanos/peepingtim/releases/download/testing/testing.zip",
+        "IconUrl": "https://raw.githubusercontent.com/lnjanos/peepingtim/refs/heads/master/SamplePlugin/assets/pipipopo.png"
+    },
+    {
+        "Author": "kcuY",
+        "Name": "CrystalSync",
+        "Punchline": "Chat via Discord.",
+        "Description": "Chat via Discord.",
+        "Tags": [
+            "Crystal Sync",
+            "CrystalSync",
+            "Chat",
+            "Discord",
+            "kcuy"
+        ],
+        "InternalName": "CrystalSync",
+        "AssemblyVersion": "1.2.0.2",
+        "TestingAssemblyVersion": "1.1.0.9",
+        "RepoUrl": "https://github.com/lnjanos/crystalsync/",
+        "ApplicableVersion": "any",
+        "DalamudApiLevel": 12,
+        "TestingDalamudApiLevel": 12,
+        "IsHide": "False",
+        "IsTestingExclusive": "False",
+        "DownloadCount": 48,
+        "LastUpdate": 1733780713,
+        "DownloadLinkInstall": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.2.0.2.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.2.0.2.zip",
+        "DownloadLinkTesting": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.1.0.9.zip",
+        "IconUrl": "https://raw.githubusercontent.com/lnjanos/crystalsync/refs/heads/main/icon.png"
+    },
+    {
+        "Author": "kcuY",
+        "Name": "AdRunner",
+        "Punchline": "Automatically runs your Ads.",
+        "Description": "Automatically runs your Ads.",
+        "Tags": [
+            "Ads",
+            "Automation",
+            "AdRunner",
+            "Runner"
+        ],
+        "InternalName": "AdRunner",
+        "AssemblyVersion": "1.0.0.1",
+        "TestingAssemblyVersion": "1.0.0.0",
+        "RepoUrl": "https://github.com/lnjanos/adrunner/",
+        "ApplicableVersion": "any",
+        "DalamudApiLevel": 12,
+        "TestingDalamudApiLevel": 12,
+        "IsHide": "False",
+        "IsTestingExclusive": "False",
+        "DownloadCount": 50,
+        "DownloadLinkInstall": "https://github.com/lnjanos/adrunner/releases/download/Release/1.0.0.1.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/adrunner/releases/download/Release/1.0.0.1.zip",
+        "DownloadLinkTesting": "https://github.com/lnjanos/adrunner/releases/download/Release/1.0.0.0.zip",
+        "IconUrl": "https://raw.githubusercontent.com/lnjanos/crystalsync/refs/heads/main/icon.png"
+    },
+    {
+        "Author": "kcuY",
+        "Name": "Soundy",
+        "Punchline": "Youtube Music Import for Penumbra.",
+        "Description": "Youtube Music Import for Penumbra.",
+        "Tags": [
+            "youtube",
+            "import",
+            "mods",
+            "sound",
+            "music",
+            "music import"
+        ],
+        "InternalName": "Soundy",
+        "AssemblyVersion": "1.4.0.1",
+        "TestingAssemblyVersion": "1.4.0.1",
+        "RepoUrl": "https://github.com/lnjanos",
+        "ApplicableVersion": "any",
+        "DalamudApiLevel": 12,
+        "TestingDalamudApiLevel": 12,
+        "IsHide": "False",
+        "IsTestingExclusive": "False",
+        "DownloadCount": 10,
+        "LastUpdate": 1733780713,
+        "DownloadLinkInstall": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_1.4.0.1.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_1.4.0.1.zip",
+        "DownloadLinkTesting": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_1.4.0.1.zip",
+        "IconUrl": "https://raw.githubusercontent.com/lnjanos/yueImport/refs/heads/master/7onk2b.png"
+    }
+
+
+
+]
