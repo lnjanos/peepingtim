@@ -91,7 +91,7 @@ namespace PeepingTim.Windows
                             }
                         }
                     }
-                    if (Plugin.Configuration.StalkOption && ImGui.MenuItem("Stalk"))
+                    if (Plugin.Configuration.NoNoNo && ImGui.MenuItem("Stalk"))
                     {
                         Plugin.OpenStalkWindow(viewer);
                     }

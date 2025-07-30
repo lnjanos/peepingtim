@@ -149,7 +149,7 @@ namespace PeepingTim
 
         private void OnMenu(IMenuOpenedArgs args)
         {
-            if (args.MenuType == ContextMenuType.Inventory || !Configuration.StalkOption) 
+            if (args.MenuType == ContextMenuType.Inventory || !Configuration.NoNoNo) 
                 return;
 
             try

@@ -24,14 +24,14 @@ public class Configuration : IPluginConfiguration
     public bool DoteOption { get; set; } = true;
     public bool AdventurePlateOption { get; set; } = true;
     public bool ExamineOption { get; set; } = true;
-    public bool StalkOption { get; set; } = true;
+    public bool NoNoNo { get; } = false;
     public bool SearchInfoOption { get; set; } = true;
     public Vector4 titleColor { get; set; } = new Vector4(0.6f, 0.8f, 1.0f, 1.0f);
     public Vector4 targetingColor { get; set; } = new Vector4(0.0431f, 0.9569f, 0.1804f, 1.0000f);
     public Vector4 unloadedColor { get; set; } = new Vector4(0.5f, 0.5f, 0.5f, 1f);
     public Vector4 loadedColor { get; set; } = new Vector4(1f, 1f, 1f, 1f);
 
-    public readonly string DevVersion = "1.3.0.0";
+    public readonly string DevVersion = "1.3.1.0";
 
     public static string BasePath = Plugin.PluginInterface.GetPluginConfigDirectory();
 

@@ -120,13 +120,6 @@ namespace PeepingTim.Windows
                         Configuration.Save();
                     }
 
-                    var stalkOption = Configuration.StalkOption;
-                    if (ImGui.Checkbox("Stalk", ref stalkOption))
-                    {
-                        Configuration.StalkOption = stalkOption;
-                        Configuration.Save();
-                    }
-
                     var searchInfoOption = Configuration.SearchInfoOption;
                     if (ImGui.Checkbox("Context Menu", ref searchInfoOption))
                     {
