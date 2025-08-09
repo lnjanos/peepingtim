@@ -1,5 +1,5 @@
 using Dalamud.Interface.Windowing;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -27,8 +27,8 @@ namespace PeepingTim.Windows
         {
             this.SizeConstraints = new WindowSizeConstraints
             {
-                MinimumSize = new Vector2(225, 130),
-                MaximumSize = new Vector2(225, 300)
+                MinimumSize = new Vector2(140, 130),
+                MaximumSize = new Vector2(1000, 500)
             };
 
             Size = new Vector2(225, 130);
@@ -114,7 +114,7 @@ namespace PeepingTim.Windows
                         if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                         {
                             Plugin.TargetCharacter(viewer);
-                            ImGui.SetWindowFocus(null);
+                            ImGui.SetWindowFocus(ImU8String.Empty);
                         }
 
                         // Rechtsklick => Kontextmenü

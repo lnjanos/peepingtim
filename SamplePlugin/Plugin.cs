@@ -11,7 +11,7 @@ using Dalamud.Plugin.Services;
 using System.Collections.Generic;
 using System;
 using PeepingTim.Windows;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System.Linq;
 using Dalamud.Game.Text.SeStringHandling;
 using Lumina.Excel.Sheets;
@@ -451,20 +451,28 @@ namespace PeepingTim
                             vInfo.IsActive = true;
                             vInfo.LastSeen = DateTime.Now;
                         }
-
-                        // Sound abspielen
-                        if (Configuration.SoundEnabled && !vInfo.soundPlayed)
+                        try
                         {
-                            try
+                            if (vInfo == null)
+                                continue;
+                            if (Configuration.SoundEnabled && !vInfo.soundPlayed)
                             {
-                                SoundManager.PlaySound();
-                                vInfo.soundPlayed = true;
+                                try
+                                {
+                                    SoundManager.PlaySound();
+                                    vInfo.soundPlayed = true;
+                                }
+                                catch (Exception ex)
+                                {
+                                    ChatGui.PrintError($"Error Sound 3: {ex.Message}");
+                                }
                             }
-                            catch (Exception ex)
-                            {
-                                ChatGui.PrintError($"Error Sound 3: {ex.Message}");
-                            }
+                        } 
+                        catch (Exception ex)
+                        {
+                            ChatGui.PrintError($"Error Sound 1: {ex.Message}");
                         }
+                        // Sound abspielen
                     }
 
                     // 2) Schauen, ob dieser Char jemanden anvisiert, der ein Stalker ist
@@ -628,7 +636,7 @@ namespace PeepingTim
                 Task.Delay(1000);
                 Svc.Framework.RunOnTick(() =>
                 {
-                    Chat.Instance.SendMessage("/dote");
+                    Chat.SendMessage("/dote");
                 });
             }
         }
@@ -716,7 +724,7 @@ namespace PeepingTim
                 string command = $"/tell {viewer.Name}@{viewer.World} {message}";
                 Svc.Framework.RunOnTick(() =>
                 {
-                    Chat.Instance.SendMessage(command);
+                    Chat.SendMessage(command);
                 });
             }
         }

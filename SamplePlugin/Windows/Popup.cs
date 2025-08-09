@@ -3,7 +3,7 @@ using ECommons.DalamudServices;
 using ECommons.EzSharedDataManager;
 using ECommons.ImGuiMethods;
 using ECommons;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System;
 using System.Collections.Generic;
 using System.Linq;
