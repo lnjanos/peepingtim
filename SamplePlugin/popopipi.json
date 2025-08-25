@@ -37,7 +37,7 @@
             "kcuy"
         ],
         "InternalName": "CrystalSync",
-        "AssemblyVersion": "1.4.0.0",
+        "AssemblyVersion": "1.4.0.1",
         "TestingAssemblyVersion": "1.1.0.9",
         "RepoUrl": "https://github.com/lnjanos/crystalsync/",
         "ApplicableVersion": "any",
@@ -47,8 +47,8 @@
         "IsTestingExclusive": "False",
         "DownloadCount": 101,
         "LastUpdate": 1733780713,
-        "DownloadLinkInstall": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.4.0.0.zip",
-        "DownloadLinkUpdate": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.4.0.0.zip",
+        "DownloadLinkInstall": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.4.0.1.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.4.0.1.zip",
         "DownloadLinkTesting": "https://github.com/lnjanos/crystalsync/releases/download/Release/1.1.0.9.zip",
         "IconUrl": "https://raw.githubusercontent.com/lnjanos/crystalsync/refs/heads/main/icon.png"
     },
