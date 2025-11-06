@@ -209,12 +209,12 @@ namespace PeepingTim
 
         private void OnCommand(string command, string args)
         {
-            MainWindow.IsOpen = true;
+            MainWindow.IsOpen = !MainWindow.IsOpen;
         }
 
         private void OnConfig(string command, string args)
         {
-            ConfigWindow.IsOpen = true;
+            ConfigWindow.IsOpen = !ConfigWindow.IsOpen;
         }
 
         private void OnLogin()
