@@ -78,7 +78,11 @@ namespace PeepingTim.Helpers
 
         public void PlaySound(bool playAnyway = false)
         {
-            if (!playAnyway && !Plugin.Configuration.SoundEnabledWindowClosed && !Plugin.IsMainWindowOpen()) return;
+            if (!playAnyway)
+            {
+                if (Plugin.ShouldSuppressDutySound()) return;
+                if (!Plugin.Configuration.SoundEnabledWindowClosed && !Plugin.IsMainWindowOpen()) return;
+            }
 
             new Thread(() =>
             {

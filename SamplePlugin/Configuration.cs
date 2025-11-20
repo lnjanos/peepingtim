@@ -16,6 +16,8 @@ public class Configuration : IPluginConfiguration
     public bool SomePropertyToBeSavedAndWithADefault { get; set; } = true;
     public bool SoundEnabled { get; set; } = false;
     public bool SoundEnabledWindowClosed { get; set; } = false;
+    public bool SuppressSoundWhileInDuty { get; set; } = true;
+    public bool HideWindowWhileInDuty { get; set; } = false;
     public float SoundVolume { get; set; } = 0.5f;
     public static string OriginalSoundFile => Path.Combine(BasePath, "assets", "alert.wav");
     public string SoundFilePath { get; set; } = OriginalSoundFile;

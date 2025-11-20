@@ -88,6 +88,23 @@ namespace PeepingTim.Windows
                         ImGui.SetTooltip("If enabled, the plugin will automatically start when you launch the game.");
                     }
 
+
+                    ImGui.Spacing();
+                    ImGui.TextColored(new Vector4(1.0f, 0.84f, 0.0f, 1.0f), "Duty Settings");
+                    ImGui.Separator();
+                    ImGui.Spacing();
+
+                    var hideWindowDuty = Configuration.HideWindowWhileInDuty;
+                    if (ImGui.Checkbox("Hide main window while in duties", ref hideWindowDuty))
+                    {
+                        Configuration.HideWindowWhileInDuty = hideWindowDuty;
+                        Configuration.Save();
+                    }
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("Automatically hides the main viewer list while you are inside an instanced duty.");
+                    }
+
                     ImGui.Spacing();
                     ImGui.TextColored(new Vector4(1.0f, 0.84f, 0.0f, 1.0f), "Popup Settings");
                     ImGui.Separator();
@@ -187,6 +204,18 @@ namespace PeepingTim.Windows
                         {
                             ImGui.SetTooltip("If enabled, sound will still play even if the main window is not visible.");
                         }
+
+                        var suppressInDuty = Configuration.SuppressSoundWhileInDuty;
+                        if (ImGui.Checkbox("Mute alerts while in duties", ref suppressInDuty))
+                        {
+                            Configuration.SuppressSoundWhileInDuty = suppressInDuty;
+                            Configuration.Save();
+                        }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Disables alert sounds whenever you are bound by a duty (e.g., dungeons, trials, PvP).");
+                        }
+
 
                         ImGui.Spacing();
                         ImGui.TextUnformatted("Path to audio file:");

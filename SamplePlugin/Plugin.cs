@@ -18,6 +18,7 @@ using Lumina.Excel.Sheets;
 using System.Diagnostics;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.Text;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using ECommons;
@@ -52,6 +53,7 @@ namespace PeepingTim
         [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
         [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
         [PluginService] internal static IContextMenu ContextMenu { get; private set; } = null!;
+        [PluginService] internal static ICondition Condition { get; private set; } = null!;
 
         private const string CommandName1 = "/ptim";
         private const string CommandName2 = "/peepingtim";
@@ -93,6 +95,7 @@ namespace PeepingTim
         private const int LoadingIntervalMs = 1500;
 
         private bool firstDrawn = false;
+        private bool dutyWindowSuppressed = false;
 
         public Plugin()
         {
@@ -187,6 +190,58 @@ namespace PeepingTim
                 ChatGui.PrintError(ex.Message);
             }
             //OpenStalkWindow(CreateViewer(args.));
+        }
+
+        private bool IsInDutyInstance()
+        {
+            try
+            {
+                return Condition != null && Condition[ConditionFlag.BoundByDuty];
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public bool ShouldSuppressDutySound()
+        {
+            return Configuration.SuppressSoundWhileInDuty && IsInDutyInstance();
+        }
+
+        private void HandleDutyWindowSuppression()
+        {
+            if (!Configuration.HideWindowWhileInDuty)
+            {
+                if (dutyWindowSuppressed)
+                {
+                    if (!IsMainWindowOpen())
+                    {
+                        MainWindow.IsOpen = true;
+                    }
+                    dutyWindowSuppressed = false;
+                }
+                return;
+            }
+
+            bool inDuty = IsInDutyInstance();
+
+            if (inDuty)
+            {
+                if (IsMainWindowOpen())
+                {
+                    MainWindow.IsOpen = false;
+                    dutyWindowSuppressed = true;
+                }
+            }
+            else if (dutyWindowSuppressed)
+            {
+                if (!IsMainWindowOpen())
+                {
+                    MainWindow.IsOpen = true;
+                }
+                dutyWindowSuppressed = false;
+            }
         }
 
         public void Dispose()
@@ -364,6 +419,8 @@ namespace PeepingTim
 
         private void OnUpdate(IFramework framework)
         {
+            HandleDutyWindowSuppression();
+
             long currentTick = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             if (currentTick - lastUpdateTick < UpdateIntervalMs)
                 return;
@@ -455,7 +512,7 @@ namespace PeepingTim
                         {
                             if (vInfo == null)
                                 continue;
-                            if (Configuration.SoundEnabled && !vInfo.soundPlayed)
+                            if (Configuration.SoundEnabled && !vInfo.soundPlayed && !ShouldSuppressDutySound())
                             {
                                 try
                                 {
