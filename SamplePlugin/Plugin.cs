@@ -43,7 +43,6 @@ namespace PeepingTim
     public sealed class Plugin : IDalamudPlugin
     {
         public string Name => "PeepingTim";
-
         [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
         [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
         [PluginService] internal static IClientState ClientState { get; private set; } = null!;
@@ -284,7 +283,7 @@ namespace PeepingTim
 
         private void TryOpenMainWindow()
         {
-            if (ClientState.IsLoggedIn && ClientState.LocalPlayer != null && !firstDrawn)
+            if (ClientState.IsLoggedIn && ObjectTable.LocalPlayer != null && !firstDrawn)
             {
                 ClientState.Login -= OnLogin;
                 ClientState.TerritoryChanged -= OnTerritoryChanged;
@@ -447,8 +446,8 @@ namespace PeepingTim
                 }
             }
 
-            if (ClientState.LocalPlayer == null) return;
-            ulong localPlayerId = ClientState.LocalPlayer.GameObjectId;
+            if (ObjectTable.LocalPlayer == null) return;
+            ulong localPlayerId = ObjectTable.LocalPlayer.GameObjectId;
 
             // Stalker, die wir aktuell tracken
             // Key: GameObjectId, Value: "StalkerKey (Name@World)"

@@ -8,18 +8,18 @@
         "kcuy"
     ],
     "InternalName": "PeepingTim",
-    "AssemblyVersion": "1.4.1.0",
+    "AssemblyVersion": "1.4.1.1",
     "TestingAssemblyVersion": "1.1.0.0",
     "RepoUrl": "https://github.com/lnjanos/peepingtim",
     "ApplicableVersion": "any",
-    "DalamudApiLevel": 13,
+    "DalamudApiLevel": 14,
     "TestingDalamudApiLevel": 13,
     "IsHide": "False",
     "IsTestingExclusive": "False",
     "DownloadCount": 1,
     "LastUpdate": 1733436251,
-    "DownloadLinkInstall": "https://github.com/lnjanos/peepingtim/releases/download/release/1.4.0.0.zip",
-    "DownloadLinkUpdate": "https://github.com/lnjanos/peepingtim/releases/download/release/1.4.0.0.zip",
+    "DownloadLinkInstall": "https://github.com/lnjanos/peepingtim/releases/download/release/1.4.1.1.zip",
+    "DownloadLinkUpdate": "https://github.com/lnjanos/peepingtim/releases/download/release/1.4.1.1.zip",
     "DownloadLinkTesting": "https://github.com/lnjanos/peepingtim/releases/download/testing/testing.zip",
     "IconUrl": "https://raw.githubusercontent.com/lnjanos/peepingtim/refs/heads/master/SamplePlugin/assets/pipipopo.png"
 }

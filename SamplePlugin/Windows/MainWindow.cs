@@ -13,7 +13,6 @@ using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Network.Structures.InfoProxy;
 using ECommons;
-using Dalamud.DrunkenToad.Extensions;
 using Dalamud.Interface;
 
 namespace PeepingTim.Windows
@@ -34,15 +33,15 @@ namespace PeepingTim.Windows
             Size = new Vector2(225, 130);
             SizeCondition = ImGuiCond.FirstUseEver;
 
+            this.Plugin = plugin;
+
             TitleBarButtons.Add(Support.NavBarBtn);
             TitleBarButtons.Add(new TitleBarButton
             {
                 Click = (m) => { Plugin.DrawConfig(); },
                 Icon = FontAwesomeIcon.Cog,
                 ShowTooltip = () => ImGui.SetTooltip($"Opens Config")
-            });
-
-            this.Plugin = plugin;
+            });            
         }
 
         public void Dispose()

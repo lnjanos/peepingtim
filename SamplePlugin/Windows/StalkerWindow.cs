@@ -77,6 +77,7 @@ namespace PeepingTim.Windows
             {
                 foreach (var viewer in lookinAt)
                 {
+                    if (viewer == null) continue;
                     // Farbe
                     if (viewer.IsActive)
                         ImGui.PushStyleColor(ImGuiCol.Text, Plugin.Configuration.targetingColor);

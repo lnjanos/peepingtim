@@ -1,10 +1,4 @@
-using System;
-using System.Numerics;
-using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
-using NAudio.Wave;
-using System.Collections.Generic;
-using System.Linq;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
@@ -12,13 +6,22 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using PeepingTim.Helpers;
+using Dalamud.Interface.ImGuiFileDialog;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Windowing;
+using Dalamud.Utility;
 using ECommons;
 using ECommons.DalamudServices;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using NAudio.Wave;
+using PeepingTim.Helpers;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Runtime.ConstrainedExecution;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace PeepingTim.Windows
 {
@@ -60,6 +63,13 @@ namespace PeepingTim.Windows
         public override void Draw()
         {
             Support.DrawRight();
+            var cur = ImGui.GetCursorPos();
+            ImGui.SetCursorPosX(cur.X + ImGui.GetContentRegionAvail().X - (ImGuiHelpers.GetButtonSize("Discord").X + 60));
+            if (ImGui.Button("Discord"))
+            {
+                GenericHelpers.ShellStart("https://discord.gg/2uAN7G4NmA");
+            }
+            ImGui.SetCursorPos(cur);
 
 
             FileDialogManager.Draw();
@@ -387,7 +397,18 @@ namespace PeepingTim.Windows
                     ImGui.Spacing();
                     ImGui.Text($"Version: {Configuration.DevVersion}");
                     ImGui.Text("Author: kcuY");
-                    ImGui.Text("Discord (for feedback or issues): _yuck");
+                    ImGui.Text("Discord (for feedback or issues):");
+                    ImGui.SameLine();
+                    if (ImGui.Button("Join Server"))
+                    {
+                        try
+                        {
+                            Util.OpenLink("https://discord.gg/2uAN7G4NmA");
+                        }
+                        catch (Exception ex)
+                        {
+                        }
+                    }
                     ImGui.Spacing();
                     ImGui.TextWrapped("Description: A slightly different version of Peeping Tom, offering additional functions.");
 
