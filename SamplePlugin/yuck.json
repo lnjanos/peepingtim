@@ -92,7 +92,7 @@
             "music import"
         ],
         "InternalName": "Soundy",
-        "AssemblyVersion": "2.0.0.2",
+        "AssemblyVersion": "2.0.0.3",
         "TestingAssemblyVersion": "1.4.4.0",
         "RepoUrl": "https://github.com/lnjanos",
         "ApplicableVersion": "any",
@@ -100,10 +100,10 @@
         "TestingDalamudApiLevel": 12,
         "IsHide": "False",
         "IsTestingExclusive": "False",
-        "DownloadCount": 1600,
+        "DownloadCount": 639,
         "LastUpdate": 1733780713,
-        "DownloadLinkInstall": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_2.0.0.2.zip",
-        "DownloadLinkUpdate": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_2.0.0.2.zip",
+        "DownloadLinkInstall": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_2.0.0.3.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_2.0.0.3.zip",
         "DownloadLinkTesting": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_1.4.4.0.zip",
         "IconUrl": "https://raw.githubusercontent.com/lnjanos/yueImport/refs/heads/master/7onk2b.png"
     },
