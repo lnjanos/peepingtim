@@ -18,7 +18,7 @@ namespace PeepingTim.Windows
 {
     public static class Support
     {
-        public static Window.TitleBarButton NavBarBtn = new Window.TitleBarButton
+        public static TitleBarButton NavBarBtn = new TitleBarButton
         {
             Click = (m) => { GenericHelpers.ShellStart("https://ko-fi.com/kkcuy"); },
             Icon = FontAwesomeIcon.Heart,

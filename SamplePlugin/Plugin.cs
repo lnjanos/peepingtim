@@ -276,7 +276,7 @@ namespace PeepingTim
             TryOpenMainWindow();
         }
 
-        private void OnTerritoryChanged(ushort territoryId)
+        private void OnTerritoryChanged(uint territoryId)
         {
             TryOpenMainWindow();
         }
