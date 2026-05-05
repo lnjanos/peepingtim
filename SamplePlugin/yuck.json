@@ -121,9 +121,9 @@
             "emotes"
         ],
         "InternalName": "Dancy",
-        "AssemblyVersion": "0.2.0",
-        "TestingAssemblyVersion": "0.2.0",
-        "RepoUrl": "https://github.com/lnjanos",
+        "AssemblyVersion": "0.2.0.0",
+        "TestingAssemblyVersion": "0.0.0.1",
+        "RepoUrl": "https://github.com/lnjanos/Dancy",
         "ApplicableVersion": "any",
         "DalamudApiLevel": 15,
         "TestingDalamudApiLevel": 12,
@@ -131,9 +131,9 @@
         "IsTestingExclusive": "False",
         "DownloadCount": 1521,
         "LastUpdate": 1733780713,
-        "DownloadLinkInstall": "https://github.com/lnjanos/Dancy/releases/download/release/0.2.0.zip",
-        "DownloadLinkUpdate": "https://github.com/lnjanos/Dancy/releases/download/release/0.2.0.zip",
-        "DownloadLinkTesting": "https://github.com/lnjanos/Dancy/releases/download/release/0.2.0.zip",
+        "DownloadLinkInstall": "https://github.com/lnjanos/Dancy/releases/download/release/0.2.0.0.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/Dancy/releases/download/release/0.2.0.0.zip",
+        "DownloadLinkTesting": "https://github.com/lnjanos/Dancy/releases/download/release/0.0.0.1.zip",
         "IconUrl": "https://raw.githubusercontent.com/lnjanos/Dancy/refs/heads/master/dancy.png"
     }
 ]
