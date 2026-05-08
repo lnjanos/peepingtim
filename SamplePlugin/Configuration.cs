@@ -28,6 +28,7 @@ public class Configuration : IPluginConfiguration
     public bool ExamineOption { get; set; } = true;
     public bool NoNoNo { get; } = false;
     public bool SearchInfoOption { get; set; } = true;
+    public bool BuffInfoOption { get; set; } = true;
     public Vector4 titleColor { get; set; } = new Vector4(0.6f, 0.8f, 1.0f, 1.0f);
     public Vector4 targetingColor { get; set; } = new Vector4(0.0431f, 0.9569f, 0.1804f, 1.0000f);
     public Vector4 unloadedColor { get; set; } = new Vector4(0.5f, 0.5f, 0.5f, 1f);

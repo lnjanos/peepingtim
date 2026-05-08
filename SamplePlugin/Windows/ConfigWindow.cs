@@ -154,6 +154,13 @@ namespace PeepingTim.Windows
                         Configuration.Save();
                     }
 
+                    var buffOption = Configuration.BuffInfoOption;
+                    if (ImGui.Checkbox("Buff Info", ref buffOption))
+                    {
+                        Configuration.BuffInfoOption = buffOption;
+                        Configuration.Save();
+                    }
+
 
                     ImGui.EndTabItem();
                 }

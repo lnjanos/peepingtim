@@ -1,19 +1,21 @@
-using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
-using System;
-using System.Collections.Generic;
-using System.Numerics;
-using ECommons.DalamudServices;
-using ECommons.Logging;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using static System.Net.Mime.MediaTypeNames;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using ECommons.GameFunctions;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Network.Structures.InfoProxy;
-using ECommons;
 using Dalamud.Interface;
+using Dalamud.Interface.Windowing;
+using Dalamud.Plugin.Ipc;
+using Dalamud.Plugin.Ipc.Exceptions;
+using ECommons;
+using ECommons.DalamudServices;
+using ECommons.GameFunctions;
+using ECommons.Logging;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using System;
+using System.Collections.Generic;
+using System.Numerics;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace PeepingTim.Windows
 {
@@ -41,7 +43,8 @@ namespace PeepingTim.Windows
                 Click = (m) => { Plugin.DrawConfig(); },
                 Icon = FontAwesomeIcon.Cog,
                 ShowTooltip = () => ImGui.SetTooltip($"Opens Config")
-            });            
+            });
+
         }
 
         public void Dispose()
@@ -148,7 +151,11 @@ namespace PeepingTim.Windows
                 ImGui.Text("No viewers yet.");
             }
 
+
+
             ImGui.EndChild();
         }
+
     }
+
 }

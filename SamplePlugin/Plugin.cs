@@ -1,42 +1,44 @@
-using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.SubKinds;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Command;
+using Dalamud.Game.Gui.ContextMenu;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Ipc;
+using Dalamud.Plugin.Ipc.Exceptions;
 using Dalamud.Plugin.Services;
-using System.Collections.Generic;
-using System;
-using PeepingTim.Windows;
-using Dalamud.Bindings.ImGui;
-using System.Linq;
-using Dalamud.Game.Text.SeStringHandling;
-using Lumina.Excel.Sheets;
-using System.Diagnostics;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using FFXIVClientStructs.FFXIV.Client.UI;
-using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.Text;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using Dalamud.Utility;
 using ECommons;
 using ECommons.Automation;
-using ECommons.GameFunctions;
-using NAudio.Wave;
-using System.Threading;
-using ECommons.Logging;
-using System.IO;
-using FFXIVClientStructs.FFXIV.Client.Sound;
-using ECommons.EzEventManager;
-using FFXIVClientStructs.FFXIV.Common.Lua;
-using FFXIVClientStructs.FFXIV.Client.UI.Info;
-using ECommons.DalamudServices;
-using System.Threading.Tasks;
-using Dalamud.Game.Gui.ContextMenu;
-using Dalamud.Utility;
 using ECommons.ChatMethods;
+using ECommons.DalamudServices;
+using ECommons.EzEventManager;
+using ECommons.GameFunctions;
+using ECommons.Logging;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Client.Sound;
+using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Client.UI.Info;
+using FFXIVClientStructs.FFXIV.Common.Lua;
+using Lumina.Excel.Sheets;
+using NAudio.Wave;
+using PeepingTim.Windows;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace PeepingTim
 {
@@ -96,6 +98,8 @@ namespace PeepingTim
         private bool firstDrawn = false;
         private bool dutyWindowSuppressed = false;
 
+        private readonly ICallGateSubscriber<IPlayerCharacter, List<MoodlesStatusInfo>> GetStatusManagerInfoByPlayerV2;
+
         public Plugin()
         {
             Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
@@ -147,11 +151,15 @@ namespace PeepingTim
             SoundManager.CheckSoundFile();
 
             Framework.Update += OnUpdate;
+
+            GetStatusManagerInfoByPlayerV2 =
+                Svc.PluginInterface.GetIpcSubscriber<IPlayerCharacter, List<MoodlesStatusInfo>>(
+                    "Moodles.GetStatusManagerInfoByPlayerV2");
         }
 
         private void OnMenu(IMenuOpenedArgs args)
         {
-            if (args.MenuType == ContextMenuType.Inventory || !Configuration.NoNoNo) 
+            if (args.MenuType == ContextMenuType.Inventory || !Configuration.NoNoNo)
                 return;
 
             try
@@ -179,7 +187,7 @@ namespace PeepingTim
             try
             {
                 MenuTargetDefault target = (MenuTargetDefault)args.Target;
-                if (target.TargetObject != null && target.TargetObject is IPlayerCharacter pc) 
+                if (target.TargetObject != null && target.TargetObject is IPlayerCharacter pc)
                 {
                     OpenStalkWindow(CreateViewer(pc));
                 }
@@ -308,6 +316,21 @@ namespace PeepingTim
         {
             ChatGui.PrintError(message);
         }
+
+        public bool HasMoodlesIpc()
+        {
+            return GetStatusManagerInfoByPlayerV2.HasFunction;
+        }
+
+        public List<MoodlesStatusInfo> TryGetMoodlesStatus(IPlayerCharacter player)
+        {
+            if (!GetStatusManagerInfoByPlayerV2.HasFunction)
+                return new List<MoodlesStatusInfo>();
+
+            return GetStatusManagerInfoByPlayerV2.InvokeFunc(player)
+                   ?? new List<MoodlesStatusInfo>();
+        }
+
 
         #region Stalker-Management
 
