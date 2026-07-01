@@ -233,6 +233,18 @@ namespace PeepingTim.Windows
                             ImGui.SetTooltip("Disables alert sounds whenever you are bound by a duty (e.g., dungeons, trials, PvP).");
                         }
 
+                        var soundCooldown = Configuration.SoundCooldownSeconds;
+                        ImGui.SetNextItemWidth(120);
+                        if (ImGui.InputInt("Sound Delay (seconds)", ref soundCooldown))
+                        {
+                            Configuration.SoundCooldownSeconds = Math.Clamp(soundCooldown, 0, 3600);
+                            Configuration.Save();
+                        }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Minimum time before the same viewer can trigger another sound alert.");
+                        }
+
 
                         ImGui.Spacing();
                         ImGui.TextUnformatted("Path to audio file:");
@@ -392,6 +404,67 @@ namespace PeepingTim.Windows
                     ImGui.EndTabItem();
                 }
 
+                // ----- CRYSTALSYNC TAB -----
+                if (ImGui.BeginTabItem("CrystalSync"))
+                {
+                    var colorPickerFlags = ImGuiColorEditFlags.DisplayHex | ImGuiColorEditFlags.NoInputs;
+
+                    ImGui.Spacing();
+                    ImGui.TextColored(new Vector4(0.6f, 0.8f, 1.0f, 1.0f), "CrystalSync Forwarding");
+                    ImGui.Separator();
+                    ImGui.Spacing();
+
+                    if (!Plugin.HasCrystalSyncIpc())
+                    {
+                        ImGui.TextWrapped("CrystalSync is a separate plugin that can forward PeepingTim alerts to Discord. If it is installed, loaded, and linked to Discord, PeepingTim can send a message when someone targets you and Discord replies can be routed back as an in-game tell.");
+                        ImGui.Spacing();
+                        ImGui.TextWrapped("CrystalSync IPC is not available right now, so there is nothing to configure here.");
+                    }
+                    else
+                    {
+                        var crystalSyncEnabled = Configuration.CrystalSyncEnabled;
+                        if (ImGui.Checkbox("Forward peep alerts to CrystalSync", ref crystalSyncEnabled))
+                        {
+                            Configuration.CrystalSyncEnabled = crystalSyncEnabled;
+                            Configuration.Save();
+                        }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Sends a CrystalSync Discord message when someone targets you.");
+                        }
+
+                        ImGui.Spacing();
+                        ImGui.Indent();
+
+                        var crystalSyncColor = Configuration.CrystalSyncColor;
+                        if (ImGui.ColorEdit4("Message Color", ref crystalSyncColor, colorPickerFlags))
+                        {
+                            Configuration.CrystalSyncColor = crystalSyncColor;
+                            Configuration.Save();
+                        }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Embed color used for CrystalSync messages.");
+                        }
+
+                        var crystalSyncCooldown = Configuration.CrystalSyncCooldownSeconds;
+                        ImGui.SetNextItemWidth(120);
+                        if (ImGui.InputInt("Delay (seconds)", ref crystalSyncCooldown))
+                        {
+                            Configuration.CrystalSyncCooldownSeconds = Math.Clamp(crystalSyncCooldown, 5, 3600);
+                            Configuration.Save();
+                        }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Minimum time before the same viewer can trigger another CrystalSync message.");
+                        }
+
+                        ImGui.Unindent();
+                    }
+
+                    ImGui.EndTabItem();
+                }
+
                 // ----- ABOUT TAB -----
                 if (ImGui.BeginTabItem("About"))
                 {
@@ -412,7 +485,7 @@ namespace PeepingTim.Windows
                         {
                             Util.OpenLink("https://discord.gg/2uAN7G4NmA");
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                         }
                     }

@@ -37,6 +37,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -97,8 +99,12 @@ namespace PeepingTim
 
         private bool firstDrawn = false;
         private bool dutyWindowSuppressed = false;
+        private readonly Dictionary<string, long> lastSoundNotificationTicks = new();
+        private readonly Dictionary<string, long> lastCrystalSyncNotificationTicks = new();
 
         private readonly ICallGateSubscriber<IPlayerCharacter, List<MoodlesStatusInfo>> GetStatusManagerInfoByPlayerV2;
+        private readonly ICallGateSubscriber<bool> crystalSyncRegistered;
+        private readonly ICallGateSubscriber<string, string> crystalSyncSendCustomMessage;
 
         public Plugin()
         {
@@ -155,6 +161,11 @@ namespace PeepingTim
             GetStatusManagerInfoByPlayerV2 =
                 Svc.PluginInterface.GetIpcSubscriber<IPlayerCharacter, List<MoodlesStatusInfo>>(
                     "Moodles.GetStatusManagerInfoByPlayerV2");
+
+            crystalSyncRegistered =
+                PluginInterface.GetIpcSubscriber<bool>("CrystalSync.Registered");
+            crystalSyncSendCustomMessage =
+                PluginInterface.GetIpcSubscriber<string, string>("CrystalSync.SendCustomMessage");
         }
 
         private void OnMenu(IMenuOpenedArgs args)
@@ -320,6 +331,11 @@ namespace PeepingTim
         public bool HasMoodlesIpc()
         {
             return GetStatusManagerInfoByPlayerV2.HasFunction;
+        }
+
+        public bool HasCrystalSyncIpc()
+        {
+            return crystalSyncRegistered.HasFunction && crystalSyncSendCustomMessage.HasFunction;
         }
 
         public List<MoodlesStatusInfo> TryGetMoodlesStatus(IPlayerCharacter player)
@@ -523,29 +539,22 @@ namespace PeepingTim
 
                         if (!viewers.TryGetValue(charKey, out var vInfo))
                         {
-                            viewers[charKey] = CreateViewer(character);
+                            vInfo = CreateViewer(character);
+                            viewers[charKey] = vInfo;
                         }
                         else
                         {
                             vInfo.IsActive = true;
                             vInfo.LastSeen = DateTime.Now;
                         }
+
+                        TrySendCrystalSyncNotification(vInfo, currentTick);
+
                         try
                         {
                             if (vInfo == null)
                                 continue;
-                            if (Configuration.SoundEnabled && !vInfo.soundPlayed && !ShouldSuppressDutySound())
-                            {
-                                try
-                                {
-                                    SoundManager.PlaySound();
-                                    vInfo.soundPlayed = true;
-                                }
-                                catch (Exception ex)
-                                {
-                                    ChatGui.PrintError($"Error Sound 3: {ex.Message}");
-                                }
-                            }
+                            TryPlayViewerSound(vInfo, currentTick);
                         } 
                         catch (Exception ex)
                         {
@@ -617,6 +626,7 @@ namespace PeepingTim
                 {
                     vInfo.IsActive = false;
                     vInfo.soundPlayed = false;
+                    vInfo.crystalSyncNotificationSent = false;
                 }
             }
 
@@ -633,6 +643,102 @@ namespace PeepingTim
                     }
                 }
             }
+        }
+
+        #endregion
+
+        #region Sound
+
+        private void TryPlayViewerSound(ViewerInfo viewer, long currentTick)
+        {
+            if (!Configuration.SoundEnabled || viewer.soundPlayed || ShouldSuppressDutySound())
+                return;
+
+            string viewerKey = GetViewerKey(viewer);
+            int cooldownMs = Math.Clamp(Configuration.SoundCooldownSeconds, 0, 3600) * 1000;
+
+            if (lastSoundNotificationTicks.TryGetValue(viewerKey, out var lastTick) &&
+                currentTick - lastTick < cooldownMs)
+            {
+                viewer.soundPlayed = true;
+                return;
+            }
+
+            try
+            {
+                SoundManager.PlaySound();
+                lastSoundNotificationTicks[viewerKey] = currentTick;
+                viewer.soundPlayed = true;
+            }
+            catch (Exception ex)
+            {
+                ChatGui.PrintError($"Error Sound 3: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region CrystalSync
+
+        private void TrySendCrystalSyncNotification(ViewerInfo viewer, long currentTick)
+        {
+            if (!Configuration.CrystalSyncEnabled)
+                return;
+
+            if (viewer.crystalSyncNotificationSent)
+                return;
+
+            string viewerKey = GetViewerKey(viewer);
+            int cooldownMs = Math.Clamp(Configuration.CrystalSyncCooldownSeconds, 5, 3600) * 1000;
+
+            if (lastCrystalSyncNotificationTicks.TryGetValue(viewerKey, out var lastTick) &&
+                currentTick - lastTick < cooldownMs)
+            {
+                viewer.crystalSyncNotificationSent = true;
+                return;
+            }
+
+            try
+            {
+                if (!crystalSyncRegistered.HasFunction ||
+                    !crystalSyncSendCustomMessage.HasFunction ||
+                    !crystalSyncRegistered.InvokeFunc())
+                    return;
+
+                string payload = JsonSerializer.Serialize(new
+                {
+                    sender_type = "peepingtim",
+                    sender_id = viewerKey,
+                    content = $"Peeping alert: {viewerKey} is looking at you.",
+                    color = ToCrystalSyncHexColor(Configuration.CrystalSyncColor),
+                    reply_mode = "game",
+                    reply_sender_type = "tell",
+                    reply_receiver_id = viewerKey,
+                    metadata = new
+                    {
+                        viewer_name = viewer.Name,
+                        viewer_world = viewer.World,
+                        viewer_key = viewerKey
+                    }
+                });
+
+                crystalSyncSendCustomMessage.InvokeFunc(payload);
+                lastCrystalSyncNotificationTicks[viewerKey] = currentTick;
+                viewer.crystalSyncNotificationSent = true;
+            }
+            catch
+            {
+                // CrystalSync is optional; unavailable IPC should not interrupt viewer tracking.
+            }
+        }
+
+        private static string ToCrystalSyncHexColor(Vector4 color)
+        {
+            int r = (int)Math.Round(Math.Clamp(color.X, 0f, 1f) * 255);
+            int g = (int)Math.Round(Math.Clamp(color.Y, 0f, 1f) * 255);
+            int b = (int)Math.Round(Math.Clamp(color.Z, 0f, 1f) * 255);
+
+            return $"#{r:X2}{g:X2}{b:X2}";
         }
 
         #endregion
@@ -889,6 +995,7 @@ namespace PeepingTim
             public bool isLoaded { get; set; }
             public bool isFocused { get; set; }
             public bool soundPlayed { get; set; }
+            public bool crystalSyncNotificationSent { get; set; }
             public DateTime FirstSeen { get; set; }
             public DateTime LastSeen { get; set; }
             public ulong lastKnownGameObjectId { get; set; }
@@ -911,6 +1018,7 @@ namespace PeepingTim
                 isLoaded = true,
                 isFocused = false,
                 soundPlayed = false,
+                crystalSyncNotificationSent = false,
                 FirstSeen = DateTime.Now,
                 LastSeen = DateTime.Now,
                 lastKnownGameObjectId = x.GameObjectId,
@@ -928,6 +1036,7 @@ namespace PeepingTim
                 isLoaded = true,
                 isFocused = false,
                 soundPlayed = false,
+                crystalSyncNotificationSent = false,
                 FirstSeen = DateTime.Now,
                 LastSeen = DateTime.Now,
                 lastKnownGameObjectId = 123,
