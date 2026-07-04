@@ -82,8 +82,8 @@
     {
         "Author": "kcuY",
         "Name": "Soundy",
-        "Punchline": "Youtube Music Import for Penumbra.",
-        "Description": "Youtube Music Import for Penumbra.",
+        "Punchline": "YouTube music import and SoundyQ queues for Penumbra.",
+        "Description": "Import YouTube or local audio into Penumbra mods, manage VFX sound replacements, and run SoundyQ as a host-controlled music queue.",
         "Tags": [
             "youtube",
             "import",
@@ -93,7 +93,7 @@
             "music import"
         ],
         "InternalName": "Soundy",
-        "AssemblyVersion": "2.3.0.0",
+        "AssemblyVersion": "2.4.0.0",
         "TestingAssemblyVersion": "1.4.4.0",
         "RepoUrl": "https://github.com/lnjanos",
         "ApplicableVersion": "any",
@@ -102,10 +102,11 @@
         "IsHide": "False",
         "IsTestingExclusive": "False",
         "DownloadCount": 2314,
-        "LastUpdate": 1733780713,
-        "DownloadLinkInstall": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_2.3.0.0.zip",
-        "DownloadLinkUpdate": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_2.3.0.0.zip",
+        "LastUpdate": 1783196886,
+        "DownloadLinkInstall": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_2.4.0.0.zip",
+        "DownloadLinkUpdate": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_2.4.0.0.zip",
         "DownloadLinkTesting": "https://github.com/lnjanos/yueImport/releases/download/release/soundy_1.4.4.0.zip",
+        "Changelog": "SoundyQ beta update: music-bot style queue modes, per-player request permissions, auto-approve support, improved pre-queue metadata/actions, clearer approved queue controls, duplicate location messages, and automatic self-redraw after Penumbra track switches.",
         "IconUrl": "https://raw.githubusercontent.com/lnjanos/yueImport/refs/heads/master/7onk2b.png"
     },
     {
